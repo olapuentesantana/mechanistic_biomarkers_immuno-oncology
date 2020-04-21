@@ -1,3 +1,4 @@
-./data
-./R/Lung_different_biopsies.zip
-./R/Lung_different_biopsies
+data/
+R/Lung_different_biopsies.zip
+R/Lung_different_biopsies
+output/
