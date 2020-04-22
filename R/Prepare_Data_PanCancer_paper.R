@@ -115,49 +115,30 @@ PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 # *****************
 # Regulons
 # Load TF regulon genesets in VIPER format
-load("data/raw_data_tcga//dorotheav1_viperRegulon.rdata")
+load("data/raw_data_tcga/dorotheav1_viperRegulon.rdata")
 # Clean TF names & explore object
 names(viper_regulon) = sapply(strsplit(names(viper_regulon), split = ' - '), head, 1)
 
-# *****************
-# Initialize DataViews
-DataViews.no_filter <- vector("list", length = 7)
-names(DataViews.no_filter) <- c("pathways", "immunecells", "TFs", "sTIL", "LRpairs", "CYTOKINEpairs","transcript")
-DataViews.filter_prot <- vector("list", length = 4)
-names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
-  
+# # *****************
+# # Initialize DataViews
+# DataViews.no_filter <- vector("list", length = 7)
+# names(DataViews.no_filter) <- c("pathways", "immunecells", "TFs", "sTIL", "LRpairs", "CYTOKINEpairs","transcript")
+# DataViews.filter_prot <- vector("list", length = 4)
+# names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
+
 # ***************
-# Remove transcripts used to build ImmuneResponse(IS,CYT, IPS and IMPRES)
+# Remove transcripts used to build ImmuneResponse (IS,CYT,IPS,IMPRES,RohISS,Chemokine,Proliferation,IS_Davoli,IFNy,ExpandedImmune,
+# T_cell_inflamed,TIDE,MSI)
 
-# Genes to remove according to IS and CYT
-load("data/list_genes_IS_CYT.Rdata")
-ISCYT_read <- unique(list_genes_IS_CAT)
-
-# Genes from IPS
-IPSG_read <- read.table("data/raw_data_tcga/IPS_genes.txt",header=TRUE, sep="\t", dec = ".",check.names=FALSE)
-
-# Genes from IMPRES
-IMPRES.checkpoint.pairs <- data.frame(Gene_1 = c("PDCD1","CD27","CTLA4","CD40","CD86", "CD28", "CD80", 
-                                                 "CD274","CD86","CD40","CD86","CD40","CD28","CD40","TNFRSF14"),
-                                      Gene_2 = c("TNFSF4","PDCD1","TNFSF4","CD28","TNFSF4", "CD86", "TNFSF9", 
-                                                 "C10orf54","HAVCR2","PDCD1","CD200","CD80","CD276","CD274","CD86"))
-IMPRES_read <- unique(as.vector(as.matrix(IMPRES.checkpoint.pairs))) # 15 genes
-# RohISS_read <- c("GZMA", "GZMB", "PRF1", "GNLY", "HLA-A", "HLA-B", "HLA-C", "HLA-E", "HLA-F", 
-#                   "HLA-G", "HLA-H", "HLA-DMA", "HLA-DMB", "HLA-DOA", "HLA-DOB", "HLA-DPA1", 
-#                   "HLA-DPB1", "HLA-DQA1", "HLA-DQA2", "HLA-DQB1", "HLA-DRA", "HLA-DRB1", 
-#                   "IFNG", "IFNGR1", "IFNGR2", "IRF1", "STAT1", "PSMB9", "CCR5", "CCL3", "CCL4", 
-#                   "CCL5", "CXCL9", "CXCL10", "CXCL11", "ICAM1", "ICAM2", "ICAM3", "ICAM4", "ICAM5", "VCAM1")
-
-# Unify all genes from signatures
-# list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read))
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read))
+# Genes to remove according to all ICB proxy's 
+load("data/all_genes_ICB_proxies.RData")
 
 # ***************
 # RNAseq data --> Pahways, TFs
 
 sapply(PanCancer.names, function(Cancer){
   
-  file <- dir(paste0("~/Desktop/PhD_TUE/Github_model/desktop/data/raw_data/RNAseq/20160128_version/stddata__2016_01_28/", Cancer,"/20160128/",
+  file <- dir(paste0("data/raw_data_tcga/RNAseq/20160128_version/stddata__2016_01_28/", Cancer,"/20160128/",
                      "gdac.broadinstitute.org_", Cancer,".Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes__data.Level_3.2016012800.0.0"),
               recursive = TRUE, pattern = "data.txt", full.names = TRUE)
   
@@ -195,8 +176,8 @@ sapply(PanCancer.names, function(Cancer){
   
   # Remove ImmuneResponse genes
   rownames(log2mas1.TPM.transcripts) <- HGNC_symbol
-  remove.genes <- match(list_genes_to_remove, rownames(log2mas1.TPM.transcripts))
-  log2mas1.TPM.transcripts <- log2mas1.TPM.transcripts[-remove.genes,]
+  #remove.genes <- match(all_genes_to_remove, rownames(log2mas1.TPM.transcripts))
+  #log2mas1.TPM.transcripts <- log2mas1.TPM.transcripts[-remove.genes,]
   
   # Sample screening:
   keep.samples.no_filter <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS[[Cancer]], 1, 15)
@@ -206,6 +187,9 @@ sapply(PanCancer.names, function(Cancer){
   transcript.filter_prot <- log2mas1.TPM.transcripts[, keep.samples.filter_prot]
   
   # Insert into DataViews/DataViews.filter_sTIL
+  load(paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
+  load(paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
+  
   DataViews.no_filter$transcript <- as.data.frame(t(transcript.no_filter))
   DataViews.filter_prot$transcript <- as.data.frame(t(transcript.filter_prot))
   
@@ -301,8 +285,8 @@ sapply(PanCancer.names, function(Cancer){
   
   # Remove ImmuneResponse genes
   rownames(rawcounts.transcripts) <- HGNC_symbol
-  remove.genes <- match(list_genes_to_remove, rownames(rawcounts.transcripts))
-  rawcounts.transcripts <- rawcounts.transcripts[-remove.genes,]
+  #remove.genes <- match(all_genes_to_remove, rownames(rawcounts.transcripts))
+  #rawcounts.transcripts <- rawcounts.transcripts[-remove.genes,]
   
   # Sample screening:
   #keep.samples.no_filter
@@ -394,8 +378,8 @@ sapply(PanCancer.names, function(Cancer){
   DataViews.no_filter$pathways <- Pathways.activity.no_filter
   DataViews.filter_prot$pathways <- Pathways.activity.filter_prot
   
-  #save(DataViews.no_filter, file = paste0("./data/PanCancer/",Cancer,"/new/DataViews_no_filter_",Cancer, ".RData"))
-  #save(DataViews.filter_prot, file = paste0("./data/PanCancer/",Cancer,"/new/DataViews_filter_prot_",Cancer, ".RData"))
+  save(DataViews.no_filter, file = paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
+  save(DataViews.filter_prot, file = paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
   
 })
 
