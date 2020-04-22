@@ -44,7 +44,7 @@
 
 # ****************
 # working directory
-setwd("~/Desktop/PhD_TUE/Github_model/desktop/")
+setwd("~/Desktop/PhD_TUE/Github_model/repository/mechanistic_biomarkers_immuno-oncology/")
 
 # ****************
 # packages
@@ -58,28 +58,27 @@ library(viper)
 # functions
 source("R/scaling_function.R")
 # Derive IMPRES from Auslander
-source("R/ObtainIMPRES.R")
+source("R/Signatures_response_ICBs/ObtainIMPRES.R")
 # Derive IPS from Charaentong
-source("R/ObtainIPS.R")
+source("R/Signatures_response_ICBs/ObtainIPS.R")
 # Derive Roh Immune Signature Score
-source("./R/ObtainRohISS.R")
+source("R/Signatures_response_ICBs/ObtainRohISS.R")
 # Derive 12-Chemokine Signature Score
-source("./R/Obtain12chemokine.R")
+source("R/Signatures_response_ICBs/Obtain12chemokine.R")
 # Derive Immune Signature Davoli
-source("./R/ObtainDavoliIS.R")
+source("R/Signatures_response_ICBs/ObtainDavoliIS.R")
 # Derive Proliferation Signature 
-source("./R/ObtainProliferation.R")
+source("R/Signatures_response_ICBs/ObtainProliferation.R")
 # Derive IFNy Signature Ayers
-source("./R/ObtainIFnyAyers.R")
+source("R/Signatures_response_ICBs/ObtainIFnyAyers.R")
 # Derive Expanded Immune Signature Ayers
-source("./R/ObtainExpandedImmuneAyers.R")
+source("R/Signatures_response_ICBs/ObtainExpandedImmuneAyers.R")
 # Derive T cell Inflamd GEP Ayers
-source("./R/ObtainTcellInflamedAyers.R")
+source("R/Signatures_response_ICBs/ObtainTcellInflamedAyers.R")
 # Derive TIDE score Jiang
-source("./R/ObtainTIDE.R")
+source("R/Signatures_response_ICBs/ObtainTIDE.R")
 # Derive MSI score Fu
-source("./R/ObtainMSI.R")
-
+source("R/Signatures_response_ICBs/ObtainMSI.R")
 
 # ****************
 # functions from Federica
