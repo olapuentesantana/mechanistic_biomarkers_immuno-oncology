@@ -115,7 +115,7 @@ PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 # *****************
 # Regulons
 # Load TF regulon genesets in VIPER format
-load("./data/raw_data/dorotheav1_viperRegulon.rdata")
+load("data/raw_data_tcga//dorotheav1_viperRegulon.rdata")
 # Clean TF names & explore object
 names(viper_regulon) = sapply(strsplit(names(viper_regulon), split = ' - '), head, 1)
 
@@ -130,11 +130,11 @@ names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
 # Remove transcripts used to build ImmuneResponse(IS,CYT, IPS and IMPRES)
 
 # Genes to remove according to IS and CYT
-load("./data/list_genes_IS_CYT.Rdata")
+load("data/list_genes_IS_CYT.Rdata")
 ISCYT_read <- unique(list_genes_IS_CAT)
 
 # Genes from IPS
-IPSG_read <- read.table("data/raw_data/IPS_genes.txt",header=TRUE, sep="\t", dec = ".",check.names=FALSE)
+IPSG_read <- read.table("data/raw_data_tcga/IPS_genes.txt",header=TRUE, sep="\t", dec = ".",check.names=FALSE)
 
 # Genes from IMPRES
 IMPRES.checkpoint.pairs <- data.frame(Gene_1 = c("PDCD1","CD27","CTLA4","CD40","CD86", "CD28", "CD80", 
