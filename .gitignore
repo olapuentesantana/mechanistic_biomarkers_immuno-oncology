@@ -1,4 +1,10 @@
-data/
+data/data_processed_TIDE/
+data/PanCancer/
+data/Inter-cellular_networks_Maisa/
+data/RNAdata_Maisa/
+data/raw_data_tcga/
+data/Validation/
+data/list_genes_IS_CYT.Rdata
 R/Lung_different_biopsies.zip
 R/Lung_different_biopsies
 output/

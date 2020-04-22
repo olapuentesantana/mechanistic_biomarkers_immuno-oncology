@@ -426,8 +426,8 @@ sapply(PanCancer.names, function(ii){
 # Immune cells data (quanTIseq) and Spatial TILs data (Saltz et al.)
 
 # data
-all_cell.fractions <- read.csv("./data/raw_data/quanTIseq_estimated.csv", header = TRUE, row.names = 1)
-all.spatial.TILs <- read.csv("./data/raw_data/spatial_TILs_saltz.csv", header = TRUE, row.names = 1)
+all_cell.fractions <- read.csv("./data/raw_data_tcga/quanTIseq_estimated.csv", header = TRUE, row.names = 1)
+all.spatial.TILs <- read.csv("./data/raw_data_tcga/spatial_TILs_saltz.csv", header = TRUE, row.names = 1)
 
 
 # ------------------------------------------------------------------------------------------------------- #
