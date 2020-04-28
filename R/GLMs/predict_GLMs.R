@@ -6,8 +6,8 @@ predict_GLMs <- function(DataViews.train, DataViews.test, Label.test, View, K=10
   
   # ****************
   # scripts
-  source("R/scaling_function.R")
-  source("R/GLMs/elastic_net_test.R")
+  source("../R/scaling_function.R")
+  source("../R/GLMs/elastic_net_test.R")
   
   # ****************
   # Initialize variables

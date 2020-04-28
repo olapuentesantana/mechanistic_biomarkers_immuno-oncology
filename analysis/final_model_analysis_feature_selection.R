@@ -13,8 +13,7 @@
 
 # ****************
 # working directory
-# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # ****************
 # packages

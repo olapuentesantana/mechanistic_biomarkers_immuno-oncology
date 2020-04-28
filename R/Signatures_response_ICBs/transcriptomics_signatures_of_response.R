@@ -84,42 +84,20 @@ Teff_read <- c("CD8A", "CXCL9", "CXCL10", "PRF1", "IFNG", "GZMA", "GZMB", "TBX21
 
 # Unify all genes from signatures
 
-# a) CYT, IS, IPS, IMPRES
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read))
-cat("\n CYT, IS, IPS, IMPRES scores lead to remove", length(list_genes_to_remove), "genes \n")
-
-# b) CYT, IS, IPS, IMPRES, RohISS
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS scores lead to ", length(list_genes_to_remove), "genes \n")
-
-# c) CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, 
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read, Chemokine_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS, 12-chemokine scores lead to ", length(list_genes_to_remove), "genes \n")
-
-# d) CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read, Chemokine_read, Proliferation_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation scores lead to ", length(list_genes_to_remove), "genes \n")
-
-# e) CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read, Chemokine_read, Proliferation_read, IS_Davoli_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli scores lead to ", length(list_genes_to_remove), "genes \n")
-
-# f) CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli, IFNy (Ayers)
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read, Chemokine_read, Proliferation_read, IS_Davoli_read, IFNy_Ayers_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli, IFNy (Ayers) scores lead to ", length(list_genes_to_remove), "genes \n")
-
-# g) CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli, IFNy (Ayers), Expanded Immune (Ayers)
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read, Chemokine_read, Proliferation_read, IS_Davoli_read, IFNy_Ayers_read,
-                                 ExpandedImmune_Ayers_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli, IFNy (Ayers), Expanded Immune (Ayers) scores lead to " , length(list_genes_to_remove), "genes \n")
-
-# h) CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli, IFNy (Ayers), Expanded Immune (Ayers), T_cell_inflamed_read
-list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read, RohISS_read, Chemokine_read, Proliferation_read, IS_Davoli_read, IFNy_Ayers_read,
-                                 ExpandedImmune_Ayers_read, T_cell_inflamed_Ayers_read))
-cat("\n CYT, IS, IPS, IMPRES, RohISS, 12-chemokine, proliferation, IS_Davoli, IFNy (Ayers), Expanded Immune (Ayers), T cell inflamed (Ayers) scores lead to ", length(list_genes_to_remove), "genes \n")
-
-
-
-
+IS_read <- ISCYT_read[-length(ISCYT_read)]
+ICB.proxies.genes <- list(CYT = c("GZMA", "PRF1"),
+                                IS = IS_read,
+                                IPS = as.character(IPSG_read$GENE),
+                                IMPRES = IMPRES_read,
+                                RohISS = RohISS_read,
+                                Chemokine = Chemokine_read,
+                                Proliferation = Proliferation_read,
+                                IS_Davoli = IS_Davoli_read,
+                                IFny = IFNy_Ayers_read,
+                                ExpandedImmune = ExpandedImmune_Ayers_read,
+                                T_cell_inflamed = T_cell_inflamed_Ayers_read,
+                                TIDE = NULL,
+                                MSI = MSI_read)
+save(ICB.proxies.genes, file = "data/list_each_ICB_proxy_with_involved_genes.RData")
 
 

@@ -6,8 +6,8 @@ predict_L21 <- function(DataViews.train, DataViews.test, Label.test, View, K=100
   
   # ****************
   # scripts
-  source("R/scaling_function.R")
-  source("R/L21_regularization_EN/L21_test.R")
+  source("../R/scaling_function.R")
+  source("../R/L21_regularization_EN/L21_test.R")
   
   # ****************
   # Initialize variables

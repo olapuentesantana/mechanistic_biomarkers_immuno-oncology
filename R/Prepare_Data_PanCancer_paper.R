@@ -79,6 +79,11 @@ source("R/Signatures_response_ICBs/ObtainTcellInflamedAyers.R")
 source("R/Signatures_response_ICBs/ObtainTIDE.R")
 # Derive MSI score Fu
 source("R/Signatures_response_ICBs/ObtainMSI.R")
+# Compute pathway activity
+source("R/compute.pathways.scores.R")
+# Compute TFs activity
+source("R/compute.TF.activity.R")
+
 
 # ****************
 # functions from Federica
@@ -107,24 +112,17 @@ panel.lm <- function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 0
 
 # *****************
 # Cancer types
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData")
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
+load("analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
+load("analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData")
+load("analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 
 # *****************
-# Regulons
-# Load TF regulon genesets in VIPER format
-load("data/raw_data_tcga/dorotheav1_viperRegulon.rdata")
-# Clean TF names & explore object
-names(viper_regulon) = sapply(strsplit(names(viper_regulon), split = ' - '), head, 1)
-
-# # *****************
-# # Initialize DataViews
-# DataViews.no_filter <- vector("list", length = 7)
-# names(DataViews.no_filter) <- c("pathways", "immunecells", "TFs", "sTIL", "LRpairs", "CYTOKINEpairs","transcript")
-# DataViews.filter_prot <- vector("list", length = 4)
-# names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
+# Initialize DataViews
+DataViews.no_filter <- vector("list", length = 7)
+names(DataViews.no_filter) <- c("pathways", "immunecells", "TFs", "sTIL", "LRpairs", "CYTOKINEpairs","transcript")
+DataViews.filter_prot <- vector("list", length = 4)
+names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
 
 # ***************
 # Remove transcripts used to build ImmuneResponse (IS,CYT,IPS,IMPRES,RohISS,Chemokine,Proliferation,IS_Davoli,IFNy,ExpandedImmune,
@@ -186,78 +184,50 @@ sapply(PanCancer.names, function(Cancer){
   transcript.no_filter <- log2mas1.TPM.transcripts[, keep.samples.no_filter]
   transcript.filter_prot <- log2mas1.TPM.transcripts[, keep.samples.filter_prot]
   
-  # Insert into DataViews/DataViews.filter_sTIL
-  load(paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
-  load(paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
+  # load(paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
+  # load(paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
   
   DataViews.no_filter$transcript <- as.data.frame(t(transcript.no_filter))
   DataViews.filter_prot$transcript <- as.data.frame(t(transcript.filter_prot))
   
   # ---------------------------------------------------------------------------------- #
-  # Obtain DoRothEA scores
+  # Obtain DoRothEA scores (the function does log2(tpm+1) itself)
   # plot(rowMeans(rawcounts.transcripts), rowSds(as.matrix(rawcounts.transcripts)))
   # plot(rowMeans(log2mas1.TPM.transcripts), rowSds(as.matrix(log2mas1.TPM.transcripts)))
   # plot(rowMeans(TF_activity), rowSds(as.matrix(TF_activity)))
   
-  # Z score expression matrix of lo2(tpm + 1) (gene wisely as recommended by the authors)
-  Z.no_filter <- standarization(t(transcript.no_filter))
-  Z.filter_prot <- standarization(t(transcript.filter_prot))
+  # Rows with non-valid HGNC symbols were removed.
+  HGNC_symbol <- sapply(strsplit(rownames(TPM.transcripts),"\\|"),function(X) return(X[1]))
+  TPM.transcripts <-  TPM.transcripts[-which(HGNC_symbol == "?"),]
+  HGNC_symbol <-HGNC_symbol[-which(HGNC_symbol == "?")]
+  HGNC_id <- sapply(strsplit(rownames(TPM.transcripts),"\\|"),function(X) return(X[2]))
   
-  # ********************************************************************************** #
-  ## Raw counts data filtered just with quanTIseq and Immune Signature ##
-  E <- Z.no_filter
-  # redefine gene names to match transcripts for viper
-  newNames <- sapply(colnames(E), function(x){
-    # strsplit(x, "\\.")[[1]][1]
-    zz_tmp <- strsplit(x, "\\.")[[1]]
-    paste0(zz_tmp[1:(length(zz_tmp)-1)], collapse = "-")
-  })
-  colnames(E) <- newNames
-  E <- t(E)
+  # Rows corresponding to the same HGNC symbol were averaged.
+  if(anyDuplicated(HGNC_symbol) != 0){
+    idx <- which(duplicated(HGNC_symbol) == TRUE)
+    dup_genes <- HGNC_symbol[idx]
+    for (ii in dup_genes){
+      TPM.transcripts[which(HGNC_symbol %in% ii)[1],] <- colMeans(TPM.transcripts[which(HGNC_symbol %in% ii),])
+      TPM.transcripts <- TPM.transcripts[-which(HGNC_symbol %in% ii)[2],]
+      HGNC_symbol <- HGNC_symbol[-which(HGNC_symbol %in% ii)[2]]
+    }
+  }
   
-  all_regulated_transcripts <- do.call(c, lapply(viper_regulon, function(x){
-    names(x$tfmode)
-  }))
-  all_regulated_transcripts <- unique(all_regulated_transcripts)
-  all_TF <- names(viper_regulon)
+  # Remove ImmuneResponse genes (again, the function should do this)
+  rownames(TPM.transcripts) <- HGNC_symbol
   
-  # check what is the percentage of regulated transcripts and TF that we have in our data
-  cat(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in%  newNames)*100/length(all_regulated_transcripts), "\n")
-  cat(" percentage of TF = ", sum(all_TF %in% newNames)*100/length(all_TF), "\n")
+  tpm.no_filter <- TPM.transcripts[, keep.samples.no_filter]
+  tpm.filter_prot <- TPM.transcripts[, keep.samples.filter_prot]
+
+  ## TF activity computation
   
-  # Run viper
-  TF_activity.no_filter <- viper(eset = E, regulon = viper_regulon, nes = T, 
-                         method = 'none', minsize = 4, eset.filter = F)
-  
-  # ********************************************************************************** #
-  ## Raw counts data filtered  with quanTIseq, Immune Signature and spatial TILs ##
-  E <- Z.filter_prot
-  # redefine gene names to match transcripts for viper
-  newNames <- sapply(colnames(E), function(x){
-    # strsplit(x, "\\.")[[1]][1]
-    zz_tmp <- strsplit(x, "\\.")[[1]]
-    paste0(zz_tmp[1:(length(zz_tmp)-1)], collapse = "-")
-  })
-  colnames(E) <- newNames
-  E <- t(E)
-  
-  all_regulated_transcripts <- do.call(c, lapply(viper_regulon, function(x){
-    names(x$tfmode)
-  }))
-  all_regulated_transcripts <- unique(all_regulated_transcripts)
-  all_TF <- names(viper_regulon)
-  
-  # check what is the percentage of regulated transcripts and TF that we have in our data
-  cat(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in%  newNames)*100/length(all_regulated_transcripts), "\n")
-  cat(" percentage of TF = ", sum(all_TF %in% newNames)*100/length(all_TF), "\n")
-  
-  # Run viper
-  TF_activity.filter_prot <- viper(eset = E, regulon = viper_regulon, nes = T, 
-                       method = 'none', minsize = 4, eset.filter = F)
-  
-  # Insert into DataViews/DataViews.filter_sTIL
-  DataViews.no_filter$TFs <- as.data.frame(t(TF_activity.no_filter)) 
-  DataViews.filter_prot$TFs <- as.data.frame(t(TF_activity.filter_prot)) 
+  # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
+  TF_activity.no_filter <- compute.TF.activity(RNA.tpm = tpm.no_filter)
+  TF_activity.filter_prot <- compute.TF.activity(RNA.tpm = tpm.filter_prot)
+
+  # Insert into DataViews
+  DataViews.no_filter$TFs <- as.data.frame(TF_activity.no_filter$scores)
+  DataViews.filter_prot$TFs <- as.data.frame(TF_activity.filter_prot$scores)
   
   # ----------------------------------------------------------- #
   # Obtaining raw counts (Pathways data)
@@ -266,123 +236,29 @@ sapply(PanCancer.names, function(Cancer){
   colnames(rawcounts.transcripts) <- gsub(".","-", colnames(rawcounts.transcripts), fixed = TRUE)
   sapply(rawcounts.transcripts, class) # numeric
   
-  # Rows with non-valid HGNC symbols were removed.
-  HGNC_symbol <- sapply(strsplit(rownames(rawcounts.transcripts),"\\|"),function(X) return(X[1]))
-  rawcounts.transcripts <-  rawcounts.transcripts[-which(HGNC_symbol == "?"),]
-  HGNC_symbol <-HGNC_symbol[-which(HGNC_symbol == "?")]
-  HGNC_id <- sapply(strsplit(rownames(rawcounts.transcripts),"\\|"),function(X) return(X[2]))
-  
-  # Rows corresponding to the same HGNC symbol were averaged.
-  if(anyDuplicated(HGNC_symbol) != 0){
-    idx <- which(duplicated(HGNC_symbol) == TRUE)
-    dup_genes <- HGNC_symbol[idx]
-    for (ii in dup_genes){
-      rawcounts.transcripts[which(HGNC_symbol %in% ii)[1],] <- colMeans(rawcounts.transcripts[which(HGNC_symbol %in% ii),])
-      rawcounts.transcripts <- rawcounts.transcripts[-which(HGNC_symbol %in% ii)[2],]
-      HGNC_symbol <- HGNC_symbol[-which(HGNC_symbol %in% ii)[2]]
-    }
-  }
-  
-  # Remove ImmuneResponse genes
-  rownames(rawcounts.transcripts) <- HGNC_symbol
+  # Remove ImmuneResponse genes (the function should take care of it)
   #remove.genes <- match(all_genes_to_remove, rownames(rawcounts.transcripts))
   #rawcounts.transcripts <- rawcounts.transcripts[-remove.genes,]
   
   # Sample screening:
-  #keep.samples.no_filter
-  #keep.samples.filter_prot
-  
-  transcript.no_filter <- rawcounts.transcripts[, keep.samples.no_filter]
-  transcript.filter_prot <- rawcounts.transcripts[, keep.samples.filter_prot]
-  
-  ## Raw counts data filtered just with quanTIseq and Immune Signature ##
-  
-  # Variance stabilizing transformation (DESeq2 package) for each TCGA study separately. 
-  # It should generate the normalized data you can use with PROGENy.
-  # Primary tumors (01A in barcode) where a Tissue-matched normal (11A)
-  
-  # Looking for duplicated participants. Participant ID = TCGA-XX-XXXX-XX
-  cat(anyDuplicated(colnames(transcript.no_filter)), "duplicates particpants in", Cancer, "(no filter) \n")
+  rawcounts.no_filter <- rawcounts.transcripts[, keep.samples.no_filter]
+  rawcounts.filter_prot <- rawcounts.transcripts[, keep.samples.filter_prot]
 
-  # DESeq2 package asks for an integer count matrix, a data frame with the sample info, 
-  # and we use design =~1 to consider all samples as part of the same group.
+  ## Pathways activity computation
   
-  # Constructing the column data:
-  # We examine the count matrix and column data to see if they are consistent 
-  # in terms of sample order.
+  # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
+  Pathways.activity.no_filter <- compute.pathways.scores(RNA.raw_counts = rawcounts.no_filter)
+  Pathways.activity.filter_prot <- compute.pathways.scores(RNA.raw_counts = rawcounts.filter_prot)
   
-  colData <- data.frame(id = colnames(transcript.no_filter)) # vst
-  # So, default log2 fold changes are calculated as tumor over normal
+  # Insert into DataViews
+  DataViews.no_filter$pathways <- Pathways.activity.no_filter$scores
+  DataViews.filter_prot$pathways <- Pathways.activity.filter_prot$scores
   
-  # Check patients from sample_info equal to patients from Raw_counts
-  if (all(colData == colnames(transcript.no_filter)) == FALSE) colnames(transcript.no_filter) <- colData
-  
-  # Construction a DESeqDataSet:
-  transcript_integer.no_filter <- sapply(transcript.no_filter,as.integer) # Integers required
-  rownames(transcript_integer.no_filter) <- rownames(transcript.no_filter)
-  
-  # Forced all to be data.frames($ operator)
-  dset <- DESeqDataSetFromMatrix(countData = transcript_integer.no_filter,
-                                 colData = colData,
-                                 design = ~ 1)
-  
-  # Variance stabilization transformation
-  dset <- estimateSizeFactors(dset)
-  dset <- estimateDispersions(dset) # Takes long time, iteration for each gene.!!!!!!!!
-  gene_expr <- getVarianceStabilizedData(dset)
-  
-  # Obtain PROGENy scores
-  Pathways.activity.no_filter <- progeny(gene_expr, scale = FALSE)
- 
-  # ********************************************************************************** #
-  ## Raw counts data filtered  with quanTIseq, Immune Signature and spatial TILs ##
-  
-  # Variance stabilizing transformation (DESeq2 package) for each TCGA study separately. 
-  # It should generate the normalized data you can use with PROGENy.
-  # Primary tumors (01A in barcode) where a Tissue-matched normal (11A)
-  
-  # Looking for duplicated participants. Participant ID = TCGA-XX-XXXX-XX
-  cat(anyDuplicated(colnames(transcript.filter_prot)), "duplicates particpants in", Cancer, " (filter proteomics) \n")
-  
-  # DESeq2 package asks for an integer count matrix, a data frame with the sample info, 
-  # and we use design =~1 to consider all samples as part of the same group.
-  
-  # Constructing the column data:
-  # We examine the count matrix and column data to see if they are consistent 
-  # in terms of sample order.
-  
-  colData.filter_prot <- data.frame(id = colnames(transcript.filter_prot)) # vst
-  # So, default log2 fold changes are calculated as tumor over normal
-  
-  # Check patients from sample_info equal to patients from Raw_counts
-  if (all(colData.filter_prot == colnames(transcript.filter_prot)) == FALSE) colnames(transcript.filter_prot) <- colData.filter_prot
-  
-  # Construction a DESeqDataSet:
-  transcript.filter_prot_integer <- sapply(transcript.filter_prot,as.integer) # Integers required
-  rownames(transcript.filter_prot_integer) <- rownames(transcript.filter_prot)
-  
-  # Forced all to be data.frames($ operator)
-  dset.filter_prot <- DESeqDataSetFromMatrix(countData = transcript.filter_prot_integer,
-                                 colData = colData.filter_prot,
-                                 design = ~ 1)
-  
-  # Variance stabilization transformation
-  dset.filter_prot <- estimateSizeFactors(dset.filter_prot)
-  dset.filter_prot <- estimateDispersions(dset.filter_prot) # Takes long time, iteration for each gene.!!!!!!!!
-  gene_expr.filter_prot <- getVarianceStabilizedData(dset.filter_prot)
-  
-  # Obtain PROGENy scores
-  Pathways.activity.filter_prot <- progeny(gene_expr.filter_prot, scale = FALSE)
-  
-  # Insert into DataViews/DataViews.filter_sTIL
-  DataViews.no_filter$pathways <- Pathways.activity.no_filter
-  DataViews.filter_prot$pathways <- Pathways.activity.filter_prot
-  
-  save(DataViews.no_filter, file = paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
-  save(DataViews.filter_prot, file = paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
+  # save(DataViews.no_filter, file = paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
+  # save(DataViews.filter_prot, file = paste0("data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
   
 })
-
+plot(Pathways.activity.no_filter$scores, DataViews.no_filter$pathways)
 # ***************
 # Protein abundance (RPPA) data --> Proteomics
 
