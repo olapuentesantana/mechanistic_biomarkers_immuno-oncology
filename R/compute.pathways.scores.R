@@ -7,7 +7,8 @@
 #'
 #' @export
 #'
-#' @param RNA.raw_counts numeric matrix with data
+#' @param RNA.raw_counts numeric matrix of read counts with rows=genes and columns=samples
+#' @param remove.genes.ICB_proxies character vector of all those genes involved in the computation of ICB proxy's of response
 #'
 #' @return Pathway activity matrix
 #'
@@ -18,7 +19,7 @@
 # This function pre-process transcriptomics data as required by PROGENy. It matches transcript names with PROGENy perturbation genes
 # and provides information regarding how many transcripts are lost/kept. Pathways scores are computed using PROGENy package.
 
-compute.pathways.scores <- function(RNA.raw_counts){
+compute.pathways.scores <- function(RNA.raw_counts, remove.genes.ICB_proxies=TRUE,....){
 
   # ****************
   # packages
@@ -31,22 +32,14 @@ compute.pathways.scores <- function(RNA.raw_counts){
   suppressMessages(library(progeny))
 
   # ****************
-  # data
-  load("data/Validation/pathway_responsive_genes.Rdata")
-  
-  # Genes to remove according to IS and CYT
-  load("data/list_genes_IS_CYT.Rdata")
-  ISCYT_read <- unique(list_genes_IS_CAT)
-  # Genes from IPS
-  IPSG_read <- read.table("data/raw_data_tcga/IPS_genes.txt",header=TRUE, sep="\t", dec = ".",check.names=FALSE)
-  # Genes from IMPRES
-  IMPRES.checkpoint.pairs <- data.frame(Gene_1 = c("PDCD1","CD27","CTLA4","CD40","CD86", "CD28", "CD80", 
-                                                   "CD274","CD86","CD40","CD86","CD40","CD28","CD40","TNFRSF14"),
-                                        Gene_2 = c("TNFSF4","PDCD1","TNFSF4","CD28","TNFSF4", "CD86", "TNFSF9", 
-                                                   "C10orf54","HAVCR2","PDCD1","CD200","CD80","CD276","CD274","CD86"))
-  IMPRES_read <- unique(as.vector(as.matrix(IMPRES.checkpoint.pairs))) # 15 genes
-  # Unify all genes from signatures
-  list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read))
+  # data 
+  # Genes to remove according to ICB proxies genes
+  load("../data/all_genes_ICB_proxies.RData")
+  # The human  matrix consists of 14 pathways that accounts for the importance of each gene on each pathway upon perturbation. 
+  # load("../data/model_human_full.rda")
+  # pathway_responsive_genes <- as.character(unique(model_human_full$gene))
+  # MAPK_pathway <- subset(model_human_full, pathway == "MAPK")
+  # MAPK_pathway <- MAPK_pathway[which(MAPK_pathway$p.value %in% sort(MAPK_pathway$p.value, decreasing = FALSE)[1:100]),]
   
   raw_counts <- RNA.raw_counts
   genes <- rownames(raw_counts)
@@ -72,17 +65,20 @@ compute.pathways.scores <- function(RNA.raw_counts){
     rownames(raw_counts) <- genes 
   }
   
-  # Remove list of genes used to build IS and CYT
-  idy <- na.exclude(match(list_genes_to_remove, rownames(raw_counts)))
-  raw_counts <- raw_counts[-idy,]
+  # Remove list of genes used to build proxy's of ICB response
+  if (remove.genes.ICB_proxies) {
+    cat("Removing signatures genes for proxy's of ICB response:  \n")
+    idy <- na.exclude(match(all_genes_to_remove, rownames(raw_counts)))
+    raw_counts <- raw_counts[-idy,]
+  }
   
   # Integers are required for "DESeq2"
   if (any(sapply(raw_counts,is.integer) == FALSE)) {
-    raw_counts.integer <- sapply(raw_counts,as.integer)
+    raw_counts.integer <- raw_counts
+    mode(raw_counts.integer) <- "integer"
     rownames(raw_counts.integer) <- rownames(raw_counts)
-    
   }
-
+  
   # Variance stabilizing transformation (DESeq2 package)
   # Integer count matrix, a data frame with the sample info,  design =~1 to consider all samples as part of the same group.
 
@@ -93,24 +89,28 @@ compute.pathways.scores <- function(RNA.raw_counts){
   dset <- DESeqDataSetFromMatrix(countData = raw_counts.integer,
                                  colData = colData,
                                  design = ~ 1)
+  
   # Variance stabilization transformation
   dset <- estimateSizeFactors(dset)
   dset <- estimateDispersions(dset)
   gene_expr <- getVarianceStabilizedData(dset)
+  
+  # HGNC symbols are required
+  try(if (any(grep("ENSG00000", rownames(gene_expr)))) stop("hgnc gene symbols are required", call. = FALSE))
 
-  # Matching transcript names with pathway responsive genes
-  genes_kept <- intersect(rownames(gene_expr), pathway_responsive_genes)
-  genes_left <- setdiff(pathway_responsive_genes, rownames(gene_expr))
-
+  # # Matching transcript names with pathway responsive genes
+  # genes_kept <- intersect(rownames(gene_expr), MAPK_pathway$gene)
+  # genes_left <- setdiff(pathway_responsive_genes, rownames(gene_expr))
+  # 
   cat("To compute pathway scores:  \n")
-  cat("Transcripts available: ",length(genes_kept),"\n")
-  cat("Transcripts missing: ", length(genes_left),"\n")
+  # cat("Transcripts available: ",length(genes_kept),"\n")
+  # cat("Transcripts missing: ", length(genes_left),"\n")
 
   # Pathways activity (Progeny package)
-  Pathway_scores <- progeny(gene_expr, scale = FALSE)
+  Pathway_scores <- progeny(gene_expr, scale = FALSE, organism = "Human", verbose = TRUE)
 
   # Output list:
-  Pathways <- list(scores = Pathway_scores, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))
+  # Pathways <- list(scores = Pathway_scores, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))
 
-  return(Pathways)
+  return(Pathway_scores)
 }

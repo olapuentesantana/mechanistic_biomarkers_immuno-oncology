@@ -4,8 +4,9 @@ data/Inter-cellular_networks_Maisa/
 data/RNAdata_Maisa/
 data/raw_data_tcga/
 data/Validation/
-data/list_genes_IS_CYT.Rdata
 data/all_genes_ICB_proxies.RData
+data/model_human_full.rda
+data/LR.pairs.Ramilowski.RData
 R/Lung_different_biopsies.zip
 R/Lung_different_biopsies
 output/
