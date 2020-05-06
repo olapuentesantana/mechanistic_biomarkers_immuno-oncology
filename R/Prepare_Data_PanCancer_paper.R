@@ -347,6 +347,7 @@ sapply(PanCancer.names, function(Cancer){
 
 
 
+
 # ***************
 # Protein abundance (RPPA) data --> Proteomics
 
@@ -1907,12 +1908,21 @@ sapply(PanCancer.names, function(ii){
   cat("\n",ii,"\n")
   
   ## Ligand-receptors pairs ##
-  L_R_pairs <- read.table(paste0("~/Desktop/PhD_TUE/Github_model/desktop/data/Inter-cellular_networks_Maisa/weighted_networks/",
+  L_R_pairs_log10 <- read.table(paste0("../data/Inter-cellular_networks_Maisa/weighted_networks_log10//",
                           ii,".txt"), header = T, sep = "\t", row.names = 2, check.names = F)
+  
+  L_R_pairs_log2 <- read.table(paste0("../data/Inter-cellular_networks_Maisa/weighted_networks_log2/",
+                                 ii,".txt"), header = T, sep = "\t", row.names = 2, check.names = F)
+  
   # Remove two string columns
-  L_R_pairs <- as.data.frame(t(L_R_pairs[,-c(1,2,3)]))
+  L_R_pairs_log10 <- as.data.frame(t(L_R_pairs_log10[,-c(1,2,3)]))
+  L_R_pairs_log2 <- as.data.frame(t(L_R_pairs_log2[,-c(1,2,3)]))
+  
+  L_R_pairs_log10[1:3,1:3]
+  L_R_pairs_log2[1:3,1:3]
+  
  
-  ## Cytokine pairs ##
+  L_R_pairs## Cytokine pairs ##
   Cytokine_pairs <- read.table(paste0("~/Desktop/PhD_TUE/Github_model/desktop/data/Inter-cellular_networks_Maisa/weighted_networks/",
                                ii,"_cytokine.txt"), header = T, sep = "\t", row.names = 2, check.names = F)
   # Remove two string columns
@@ -1970,4 +1980,34 @@ sapply(PanCancer.names, function(ii){
   }
   
 })
+a <- as.matrix(L_R_pairs_log10)
+b <- as.matrix(L_R_pairs_log2)
+c <- as.matrix(DataViews.no_filter$LRpairs)
 
+LR_sum <- apply(c,2, sum)
+remove_NA_LR_pairs <- as.numeric(na.action(na.omit(LR_sum)))
+c <- c[,-remove_NA_LR_pairs]
+
+LR_sum <- apply(a,2, sum)
+remove_NA_LR_pairs <- as.numeric(na.action(na.omit(LR_sum)))
+a <- a[,-remove_NA_LR_pairs]
+
+LR_sum <- apply(b,2, sum)
+remove_NA_LR_pairs <- as.numeric(na.action(na.omit(LR_sum)))
+b <- b[,-remove_NA_LR_pairs]
+
+data <- data.frame(log10 = as.vector(a), log2 = as.vector(b), compute = as.vector(c))
+pairs(~., data = data, lower.panel = panel.cor, upper.panal = panel.cor)
+
+
+
+"A2M", "LRP1"
+
+RNA.tpm
+gene_expr["A2M","TCGA-02-0047-01"]
+gene_expr["LRP1","TCGA-02-0047-01"]
+
+
+
+
+    

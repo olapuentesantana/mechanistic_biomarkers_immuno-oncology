@@ -1,7 +1,9 @@
 
-setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
-X <- read.csv("R/L21_regularization_EN/python_tmp/pathways_immunecells_SKCM.csv", sep = ",",header = T)
-Y <- read.csv("R/L21_regularization_EN/python_tmp/drugs_SKCM.csv", sep = ",",header = T)
+# setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
+# X <- read.csv("R/L21_regularization_EN/python_tmp/pathways_immunecells_SKCM.csv", sep = ",",header = T)
+# Y <- read.csv("R/L21_regularization_EN/python_tmp/drugs_SKCM.csv", sep = ",",header = T)
+load("~/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/data/PanCancer/GBM/new_remove_all_genes/DataViews_no_filter_GBM.RData")
+
 rownames(X) <- X$X
 X <- X[,-1]
 rownames(Y) <- Y$X

@@ -1,5 +1,5 @@
 # #########################################################################################################
-# Script to check how removal of genes affect computation of pathways and TFs data
+# Script to check correlation between tasks: proxy's of response to ICBs
 # #########################################################################################################
 
 # ****************
@@ -36,61 +36,34 @@ panel.lm <- function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 0
 load("TCGA_samples_available_screening_with_quanTIseq_IS.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 
-# ****************
-# views
-views <- c(pathways = 'gaussian', #1
-           Protall = 'gaussian', #2
-           immunecells = 'gaussian', #3
-           TFs = 'gaussian', #4
-           transcript = 'gaussian', #5
-           sTIL = 'gaussian', #6
-           LRpairs = 'gaussian', #7
-           CYTOKINEpairs = 'gaussian')  #8) 
 
-# **************** 
-# Select data to examine
-
-## Pathways ## 
-#view_combinations <- list(views[1])
-
-## TFs ## 
-view_combinations <- list(views[4])
-
-
-
-comb_remove_all_genes <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
+comb_tasks <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
   
   # Load previous data (remove all)
   load(paste0("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/data/PanCancer/",
-              Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))  
-  b <- DataViews.no_filter[[names(view_combinations[[1]])]]
+              Cancer,"/new/ImmuneResponse_no_filter_", Cancer,"_matrix_format.RData"))  
   
-  tmp_data <- as.matrix(b)
-
-  return(tmp_data)
-  
-}))
-
-
-comb_keep_all_genes <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
-  
-  # Load previous data (keep_all)
-  load(paste0("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/data/PanCancer/",
-              Cancer, "/new_keep_all_genes/DataViews_no_filter_",Cancer,".RData"))  
-  c <- DataViews.no_filter[[names(view_combinations[[1]])]]
-  
-  tmp_data <- as.matrix(c)
+  tmp_data <- as.matrix(ImmuneResponse.no_filter)
   
   return(tmp_data)
   
 }))
 
-keep_common_features <- colnames(comb_remove_all_genes)
-
-data <- data.frame(remove_all_genes = as.vector(comb_remove_all_genes[,keep_common_features]),
-                   keep_all_genes = as.vector(comb_keep_all_genes[,keep_common_features]))
+data <- as.data.frame(comb_tasks)
 
 pairs( ~ . , data = data, upper.panel = panel.cor,lower.panel = panel.lm,
        cex.labels = 1)
 
+cor.matrix <- cor(data)
+cor.sig <- cor.mtest(data)
 
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(cor.matrix, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=45, tl.cex = 0.8, number.cex = 0.75, #Text label color and rotation
+         # Combine with significance
+         p.mat = cor.sig$p, sig.level = 0.01, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE 
+)
