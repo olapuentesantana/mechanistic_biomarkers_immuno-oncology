@@ -32,6 +32,10 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   suppressMessages(library(viper))
   
   # ****************
+  # scripts
+  source("../R/scaling_function.R")
+  
+  # ****************
   # data
   load("../data/all_genes_ICB_proxies.RData")
   # acessing (human) dorothea regulons

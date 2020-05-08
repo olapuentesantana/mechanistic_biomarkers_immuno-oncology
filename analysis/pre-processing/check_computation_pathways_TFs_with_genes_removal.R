@@ -51,11 +51,10 @@ views <- c(pathways = 'gaussian', #1
 # Select data to examine
 
 ## Pathways ## 
-#view_combinations <- list(views[1])
+view_combinations <- list(views[1])
 
 ## TFs ## 
-view_combinations <- list(views[4])
-
+#view_combinations <- list(views[4])
 
 
 comb_remove_all_genes <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
@@ -85,12 +84,15 @@ comb_keep_all_genes <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
   
 }))
 
-keep_common_features <- colnames(comb_remove_all_genes)
+keep_common_features <- colnames(comb_keep_all_genes)
+
 
 data <- data.frame(remove_all_genes = as.vector(comb_remove_all_genes[,keep_common_features]),
                    keep_all_genes = as.vector(comb_keep_all_genes[,keep_common_features]))
 
-pairs( ~ . , data = data, upper.panel = panel.cor,lower.panel = panel.lm,
+pairs( ~ . , data = comb_remove_all_genes, upper.panel = panel.cor,lower.panel = panel.lm,
        cex.labels = 1)
 
+keep_common_features[c(7,11)]
+cor(as.vector(comb_remove_all_genes[,7]), as.vector(comb_keep_all_genes[,7]))
 

@@ -16,44 +16,47 @@
 
 # ****************
 # working directory
-setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
+setwd("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/analysis")
 
 # ****************
 # scritps 
-source("R/Validation/compute.pathways.scores.R")
-source("R/Validation/compute.TF.activity.R")
+source("../R/Validation/compute.pathways.scores.R")
+source("../R/Validation/compute.TF.activity.R")
+source("../R/Validation/compute.LR.pairs.R")
 
 # ****************
 # External datasets
-Datasets.names <-  dir("data/Validation/Francesca", full.names = F, recursive = F)
+Datasets.names <-  dir("../data/Validation/Francesca", full.names = F, recursive = F)
 DataViews.test <- list()
 Labels.test <- list()
 DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
   
   # Samples information
-  load(paste0("data/Validation/Francesca/", dataset, "/", dataset, "_sampleinfo.rdata"))
+  load(paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_sampleinfo.rdata"))
   
   cat("\n",dataset,": \n")
   
   # Raw counts values
-  gene.count <- read.table(file = paste0("data/Validation/Francesca/", dataset, "/", dataset, "_gene_count.txt"),  
+  gene.count <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_gene_count.txt"),  
                            sep = "\t", header = TRUE, row.names = 1)
   
   # Tpm values
-  gene.tpm <- read.table(file = paste0("data/Validation/Francesca/", dataset, "/", dataset, "_gene_tpm.txt"),  
+  gene.tpm <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_gene_tpm.txt"),  
                          sep = "\t", header = TRUE, row.names = 1)
   
   # Cell fractions
-  cell_fractions <- as.data.frame(t(read.table(file = paste0("data/Validation/Francesca/", dataset, "/", dataset, "_cell_fractions.txt"),  
+  cell_fractions <- as.data.frame(t(read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_cell_fractions.txt"),  
                                sep = "\t", header = TRUE, row.names = 1)))
   # LRpairs
-  LRpairs <- read.table(file = paste0("data/Validation/Francesca/", dataset, "/", tolower(dataset), ".txt"),  
+  LRpairs <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", tolower(dataset), ".txt"),  
                          sep = "\t", header = TRUE, row.names = 2)
   # Remove three annotation columns
   LRpairs <- as.data.frame(LRpairs[,-c(1,2,3)])
   
   # CYTOKINEpairs
-  CYTOKINEpairs <- read.table(file = paste0("data/Validation/Francesca/", dataset, "/", tolower(dataset), "_cytokine.txt"),  
+  CYTOKINEpairs <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", tolower(dataset), "_cytokine.txt"),  
                          sep = "\t", header = TRUE, row.names = 2)
   # Remove three annotation columns
   CYTOKINEpairs <- as.data.frame(CYTOKINEpairs[,-c(1,2,3)])
@@ -147,11 +150,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
   
   if(dataset == "Gide"){
     
-    clinical_PD1 <- read.csv(file = "data/Validation/Francesca/Gide/1-s2.0-S1535610819300376-mmc2.csv", 
+    clinical_PD1 <- read.csv(file = "../data/Validation/Francesca/Gide/1-s2.0-S1535610819300376-mmc2.csv", 
                              sep = ",", header = T, skip = 2)
     clinical_PD1$Patient.no. <- paste0("PD1_",clinical_PD1$Patient.no., "_", clinical_PD1$RNA.Sequencing)
     
-    clinical_PD1_CTLA4 <- read.csv(file = "data/Validation/Francesca/Gide/1-s2.0-S1535610819300376-mmc3.csv",
+    clinical_PD1_CTLA4 <- read.csv(file = "../data/Validation/Francesca/Gide/1-s2.0-S1535610819300376-mmc3.csv",
                                    sep = ",", header = T, skip = 2)
     
     clinical_PD1_CTLA4$RNA.Sequencing[38] <- "PRE" # mistake in clinical data
@@ -291,7 +294,7 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
   
   if(dataset == "Zhao"){
 
-    clinical_PD1 <- read.csv(file = "data/Validation/Francesca/Zhao/GBM_PD1_samples.csv",
+    clinical_PD1 <- read.csv(file = "../data/Validation/Francesca/Zhao/GBM_PD1_samples.csv",
                              sep = ",", header = T)
 
     clinical_PD1.pre <- subset(clinical_PD1, pre.or.post == "pre" & RNA.seq. == "Yes")
@@ -329,11 +332,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     
     # ****************
     # Computation of pathways scores (input matrix [genes, samples], ouput matrix [sample, pathways])
-    Pathway_activities <- compute.pathways.scores(RNA.raw_counts = gene.count.pre)
+    Pathway_activities <- compute.pathways.scores(RNA.raw_counts = gene.count.pre, remove.genes.ICB_proxies=TRUE)
     
     # ****************
     # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
-    TF_activities <- compute.TF.activity(RNA.tpm = gene.tpm.pre)
+    TF_activities <- compute.TF.activity(RNA.tpm = gene.tpm.pre, remove.genes.ICB_proxies=TRUE)
     
     # ****************
     # Immune cells fractions (ouput matrix [sample, Immunecells])
@@ -357,12 +360,12 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     
     # ****************
     # data
-    DataViews.test[[dataset]] <- list(pathways = data.frame(Pathway_activities$scores),
+    DataViews.test[[dataset]] <- list(pathways = data.frame(Pathway_activities),
                                       immunecells = immunecells, 
                                       TFs = data.frame(TF_activities$scores),
                                       LRpairs = LRpairs,
                                       CYTOKINEpairs = CYTOKINEpairs,
-                                      transcript = data.frame(t(gene.tpm.pre)))
+                                      transcript = data.frame(log2(t(gene.tpm.pre)+1)))
     
     Labels.test[[dataset]] <- label.pre
   
@@ -371,8 +374,8 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
 }))
 
 All.DataViews.test <- DataViews.test
-All.Labels.test <- Labels.test
-#save(All.DataViews.test, file = "data/Validation/All_DataViews_test_pre.RData")
-# save(All.Labels.test, file = "data/Validation/All_Labels_test_pre.RData")
+#All.Labels.test <- Labels.test
+save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
+#save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
 
 

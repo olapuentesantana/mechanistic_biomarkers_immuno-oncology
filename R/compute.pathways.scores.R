@@ -74,9 +74,11 @@ compute.pathways.scores <- function(RNA.raw_counts, remove.genes.ICB_proxies=TRU
   
   # Integers are required for "DESeq2"
   if (any(sapply(raw_counts,is.integer) == FALSE)) {
-    raw_counts.integer <- raw_counts
-    mode(raw_counts.integer) <- "integer"
+    raw_counts.integer <- as.matrix(raw_counts)
+    mode(raw_counts.integer[,as.vector(which(sapply(raw_counts,is.integer) == FALSE))]) <- "integer"
     rownames(raw_counts.integer) <- rownames(raw_counts)
+  } else{
+    raw_counts.integer <- raw_counts
   }
   
   # Variance stabilizing transformation (DESeq2 package)

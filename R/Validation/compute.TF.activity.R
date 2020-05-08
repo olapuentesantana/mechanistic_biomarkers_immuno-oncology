@@ -2,13 +2,14 @@
 #'
 #' This function transcription factor activity from raw counts RNAseq data.
 #'
-#' @importFrom viper viper
+#' @importFrom dorothea dorothea
 #'
 #' @export
 #'
-#' @param RNA.raw_counts numeric matrix with data
+#' @param RNA.tpm numeric matrix of tpm values with rows=genes and columns=samples
+#' @param remove.genes.ICB_proxies character vector of all those genes involved in the computation of ICB proxy's of response
 #'
-#' @return Transcription Factor activity matrix
+#' @return TF activity matrix: matrix of normalized enrichment scores with rows=samples and columns=TFs
 #'
 #--------------------------------------------------------------------
 # Compute TFs activity from transcriptomics data.
@@ -17,43 +18,69 @@
 # This function pre-process transcriptomics data as required by DoRothEA It matches transcript names with DoRothEA genes (regulons for the
 # transcription factors) and provides information regarding how many transcripts are lost/kept. TF activities are computed using DoRothEA package.
 
-compute.TF.activity <- function(RNA.tpm){
+compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
 
   # ****************
   # packages
-  if(!("viper" %in% installed.packages()[,"Package"])) BiocManager::install("viper", ask = FALSE)
-  suppressMessages(require(viper))
-
+  if(!("BiocManager" %in% installed.packages()[,"Package"])) install.packages("BiocManager", quiet = TRUE)
+  list.of.packages <- c("dorothea", "dplyr", "viper")
+  new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+  if(length(new.packages)) BiocManager::install(new.packages, ask = FALSE)
+  
+  suppressMessages(library(dorothea))
+  suppressMessages(library(dplyr))
+  suppressMessages(library(viper))
+  
   # ****************
   # scripts
-  source("R/scaling_function.R")
+  source("../R/scaling_function.R")
   
   # ****************
   # data
-  load("data/Validation/TFs_viperRegulon.rdata") # Load TF regulon genesets in VIPER format
-  # Genes to remove according to IS and CYT
-  load("data/list_genes_IS_CYT.Rdata")
-  ISCYT_read <- unique(list_genes_IS_CAT)
-  # Genes from IPS
-  IPSG_read <- read.table("data/raw_data_tcga/IPS_genes.txt",header=TRUE, sep="\t", dec = ".",check.names=FALSE)
-  # Genes from IMPRES
-  IMPRES.checkpoint.pairs <- data.frame(Gene_1 = c("PDCD1","CD27","CTLA4","CD40","CD86", "CD28", "CD80", 
-                                                   "CD274","CD86","CD40","CD86","CD40","CD28","CD40","TNFRSF14"),
-                                        Gene_2 = c("TNFSF4","PDCD1","TNFSF4","CD28","TNFSF4", "CD86", "TNFSF9", 
-                                                   "C10orf54","HAVCR2","PDCD1","CD200","CD80","CD276","CD274","CD86"))
-  IMPRES_read <- unique(as.vector(as.matrix(IMPRES.checkpoint.pairs))) # 15 genes
-  # Unify all genes from signatures
-  list_genes_to_remove <- unique(c(ISCYT_read,as.character(IPSG_read$GENE),IMPRES_read))
+  load("../data/all_genes_ICB_proxies.RData")
+  # acessing (human) dorothea regulons
+  data(dorothea_hs, package = "dorothea")
   
-  # Remove list of genes used to build IS and CYT
-  idx <- na.exclude(match(list_genes_to_remove, rownames(RNA.tpm)))
-  RNA.tpm <- RNA.tpm[-idx,]
+  tpm <- RNA.tpm
+  genes <- rownames(tpm)
+  
+  # Rows with non-valid HGNC symbols were removed.
+  if (any(grep("\\?",genes))) {
+    tpm <- tpm[-grep("?",rownames(tpm), fixed = T),]
+    genes <- rownames(tpm)
+  }
+  if (any(grep("\\|",genes))) {
+    genes <- sapply(strsplit(rownames(tpm),"\\|"),function(X) return(X[1]))
+  }
+  
+  # Rows corresponding to the same HGNC symbol were averaged.
+  if(anyDuplicated(genes) != 0){
+    idx <- which(duplicated(genes) == TRUE)
+    dup_genes <- genes[idx]
+    for (ii in dup_genes){
+      tpm[which(genes %in% ii)[1],] <- colMeans(tpm[which(genes %in% ii),])
+      tpm <- tpm[-which(genes %in% ii)[2],]
+      genes <- genes[-which(genes %in% ii)[2]]
+    }
+    rownames(tpm) <- genes 
+  }
+  
+  # Genes to remove according to all ICB proxy's 
+  if (remove.genes.ICB_proxies) {
+    cat("Removing signatures genes for proxy's of ICB response:  \n")
+    idy <- na.exclude(match(all_genes_to_remove, rownames(tpm)))
+    tpm <- tpm[-idy,]
+  }
+  
+  # Log transformed expression matrix (log2[tpm+1]):
+  start <- Sys.time()
+  gene_expr <- standarization(log2(t(tpm) + 1))
 
-  # Z score expression matrix of lo2(tpm + 1) (gene wisely as recommended by the authors)
-  gene_expr <- standarization(log2(RNA.tpm + 1))
+  # HGNC symbols are required
+  try(if (any(grep("ENSG00000", rownames(gene_expr)))) stop("hgnc gene symbols are required", call. = FALSE))
   
   # redefine gene names to match transcripts for viper
-  E <- gene_expr
+  E <- t(gene_expr)
   newNames <- sapply(rownames(E), function(x){
     # strsplit(x, "\\.")[[1]][1]
     zz_tmp <- strsplit(x, "\\.")[[1]]
@@ -61,28 +88,30 @@ compute.TF.activity <- function(RNA.tpm){
   })
   rownames(E) <- newNames
   
-  all_regulated_transcripts <- do.call(c, lapply(viper_regulon, function(x){
-    names(x$tfmode)
-  }))
-  all_regulated_transcripts <- unique(all_regulated_transcripts)
-  all_TF <- names(viper_regulon)
+  regulons <- dplyr::filter(dorothea_hs, confidence %in% c("A", "B"))
+  all_regulated_transcripts <- unique(regulons$target)
+  # all_TF <- unique(regulons$tf)
   
   # check what is the percentage of regulated transcripts and TF that we have in our data
   cat("\nTo compute TF activities: \n")
-  cat(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in%  newNames)*100/length(all_regulated_transcripts), "\n")
-  cat(" percentage of TF = ", sum(all_TF %in% newNames)*100/length(all_TF), "\n")
+  #cat(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in% newNames)*100/length(all_regulated_transcripts), "\n")
+  #cat(" percentage of TF = ", sum(all_TF %in% newNames)*100/length(all_TF), "\n")
 
-  # TF activity (viper package)
-  TF_activities <- viper(eset = E, regulon = viper_regulon, nes = T, 
-                         method = 'none', minsize = 4, eset.filter = F)
+  # Expression matrix (rows=genes; columns=samples) scaled and recentered. 
+  # Note that genes need to be in a comparable scale (e.g. z-transformed). 
+  # Z score expression matrix (this is calculated within the package:
+  
+  # TF activity: run viper
+  TF_activities <- dorothea::run_viper(input = E, regulons = regulons, 
+                                       options = list(method = "none", minsize = 4, eset.filter = F, cores = 1, verbose=FALSE))
+  end <- Sys.time()
   
   # Samples as rows, TFs as columns
   TF_activities <- t(TF_activities)
 
   # Matching transcript names with TFs regulons
-  regulons <- unique(do.call(c,lapply(names(viper_regulon), function(X){return(names(viper_regulon[[X]]$tfmode))})))
-  genes_kept <- intersect(rownames(gene_expr), regulons)
-  genes_left <- setdiff(regulons, rownames(gene_expr))
+  genes_kept <- intersect(rownames(E), all_regulated_transcripts)
+  genes_left <- setdiff(all_regulated_transcripts, rownames(E))
 
   # Output list:
   TFs <- list(scores = TF_activities, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))

@@ -113,7 +113,7 @@ load("../analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq
 load("../analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData")
 load("../analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
-PanCancer.names.some <- PanCancer.names[-c(1:6)]
+PanCancer.names.some <- PanCancer.names[-c(1:3)]
 
 # *****************
 # Initialize DataViews
@@ -296,7 +296,7 @@ sapply(PanCancer.names, function(Cancer){
   
 })
 
-sapply(PanCancer.names, function(Cancer){
+sapply(PanCancer.names.some, function(Cancer){
   
   file <- dir(paste0("../data/raw_data_tcga/RNAseq/20160128_version/stddata__2016_01_28/", Cancer,"/20160128/",
                      "gdac.broadinstitute.org_", Cancer,".Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes__data.Level_3.2016012800.0.0"),
@@ -1896,90 +1896,87 @@ sapply(PanCancer.names, function(Cancer){
 # ## Get the estimated complete observations
 # cObs <- as.data.frame(completeObs(result))
 
-###########################################################################
-# Adding inter-cellular networks to DataViews
-###########################################################################
-
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
-PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
-
-sapply(PanCancer.names, function(ii){
-  
-  cat("\n",ii,"\n")
-  
-  ## Ligand-receptors pairs ##
-  L_R_pairs_log10 <- read.table(paste0("../data/Inter-cellular_networks_Maisa/weighted_networks_log10//",
-                          ii,".txt"), header = T, sep = "\t", row.names = 2, check.names = F)
-  
-  L_R_pairs_log2 <- read.table(paste0("../data/Inter-cellular_networks_Maisa/weighted_networks_log2/",
-                                 ii,".txt"), header = T, sep = "\t", row.names = 2, check.names = F)
-  
-  # Remove two string columns
-  L_R_pairs_log10 <- as.data.frame(t(L_R_pairs_log10[,-c(1,2,3)]))
-  L_R_pairs_log2 <- as.data.frame(t(L_R_pairs_log2[,-c(1,2,3)]))
-  
-  L_R_pairs_log10[1:3,1:3]
-  L_R_pairs_log2[1:3,1:3]
-  
- 
-  L_R_pairs## Cytokine pairs ##
-  Cytokine_pairs <- read.table(paste0("~/Desktop/PhD_TUE/Github_model/desktop/data/Inter-cellular_networks_Maisa/weighted_networks/",
-                               ii,"_cytokine.txt"), header = T, sep = "\t", row.names = 2, check.names = F)
-  # Remove two string columns
-  Cytokine_pairs <- as.data.frame(t(Cytokine_pairs[,-c(1,2,3)]))
-
-  # Sample screening:
-  # ------------------------------------------------------------------------------------------------------- #
-  ## No filter
-  
-  load(paste0("./data/PanCancer/",ii,"/new/DataViews_no_filter_",ii, ".RData"))
-  
-  keep.samples_no_filter <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS[[ii]], 1, 15)
-  LRpairs.no_filter <- L_R_pairs[keep.samples_no_filter, , drop = FALSE]
-  Cytokinepairs.no_filter <- Cytokine_pairs[keep.samples_no_filter, , drop = FALSE]
-  
-  # Integrate within DataViews
-  DataViews.no_filter$LRpairs <- LRpairs.no_filter
-  DataViews.no_filter$CYTOKINEpairs <- Cytokinepairs.no_filter
-  
-  save(DataViews.no_filter, file = paste0("./data/PanCancer/",ii,"/new/DataViews_no_filter_",ii, ".RData"))
-
-  # ------------------------------------------------------------------------------------------------------- #
-  ## Filter Spat
-  if(ii %in% names(TCGA.samples.pancancer_with_screen_quantiseg_IS_SpatialTILs)){
-    
-    load(paste0("./data/PanCancer/",ii,"/new/DataViews_filter_Spat_",ii, ".RData"))
-    
-    keep.samples.filter_Spat <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS_SpatialTILs[[ii]], 1, 15)
-    LRpairs.filter_Spat <- L_R_pairs[keep.samples.filter_Spat, , drop = FALSE]
-    Cytokinepairs.filter_Spat <- Cytokine_pairs[keep.samples.filter_Spat, , drop = FALSE]
-    
-    # Integrate within DataViews
-    DataViews.filter_Spat$LRpairs <- LRpairs.filter_Spat
-    DataViews.filter_Spat$CYTOKINEpairs <- Cytokinepairs.filter_Spat
-    
-    save(DataViews.filter_Spat, file = paste0("./data/PanCancer/",ii,"/new/DataViews_filter_Spat_",ii, ".RData"))
-
-  }
-  # ------------------------------------------------------------------------------------------------------- #
-  ## Filter Prot
-  if(ii %in% names(TCGA.samples.pancancer_with_screen_quantiseg_IS_prot)){
-    
-    load(paste0("./data/PanCancer/",ii,"/new/DataViews_filter_prot_",ii, ".RData"))
-    
-    keep.samples.filter_prot <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS_prot[[ii]], 1, 15)
-    LRpairs.filter_prot <- L_R_pairs[keep.samples.filter_prot, , drop = FALSE]
-    Cytokinepairs.filter_prot <- Cytokine_pairs[keep.samples.filter_prot, , drop = FALSE]
-    
-    # Integrate within DataViews
-    DataViews.filter_prot$LRpairs <- LRpairs.filter_prot
-    DataViews.filter_prot$CYTOKINEpairs <- Cytokinepairs.filter_prot
-    
-    save(DataViews.filter_prot, file = paste0("./data/PanCancer/",ii,"/new/DataViews_filter_prot_",ii, ".RData"))
-
-  }
-  
-})
+# ###########################################################################
+# # Adding inter-cellular networks to DataViews
+# ###########################################################################
+# 
+# load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
+# PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
+# 
+# sapply(PanCancer.names, function(ii){
+#   
+#   cat("\n",ii,"\n")
+#   
+#   ## Ligand-receptors pairs ##
+#   L_R_pairs_ln <- read.table(paste0("../data/Inter-cellular_networks_Maisa/weighted_networks_ln/",
+#                           ii,".txt"), header = T, sep = "\t", row.names = 2, check.names = F)
+#   
+#   L_R_pairs_log2 <- read.table(paste0("../data/Inter-cellular_networks_Maisa/weighted_networks_log2/",
+#                                  ii,".txt"), header = T, sep = "\t", row.names = 2, check.names = F)
+#   
+#   # Remove two string columns
+#   L_R_pairs_ln <- as.data.frame(t(L_R_pairs_ln[,-c(1,2,3)]))
+#   L_R_pairs_log2 <- as.data.frame(t(L_R_pairs_log2[,-c(1,2,3)]))
+#   
+#  
+#   L_R_pairs## Cytokine pairs ##
+#   Cytokine_pairs <- read.table(paste0("~/Desktop/PhD_TUE/Github_model/desktop/data/Inter-cellular_networks_Maisa/weighted_networks/",
+#                                ii,"_cytokine.txt"), header = T, sep = "\t", row.names = 2, check.names = F)
+#   # Remove two string columns
+#   Cytokine_pairs <- as.data.frame(t(Cytokine_pairs[,-c(1,2,3)]))
+# 
+#   # Sample screening:
+#   # ------------------------------------------------------------------------------------------------------- #
+#   ## No filter
+#   
+#   load(paste0("./data/PanCancer/",ii,"/new/DataViews_no_filter_",ii, ".RData"))
+#   
+#   keep.samples_no_filter <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS[[ii]], 1, 15)
+#   LRpairs.no_filter <- L_R_pairs[keep.samples_no_filter, , drop = FALSE]
+#   Cytokinepairs.no_filter <- Cytokine_pairs[keep.samples_no_filter, , drop = FALSE]
+#   
+#   # Integrate within DataViews
+#   DataViews.no_filter$LRpairs <- LRpairs.no_filter
+#   DataViews.no_filter$CYTOKINEpairs <- Cytokinepairs.no_filter
+#   
+#   save(DataViews.no_filter, file = paste0("./data/PanCancer/",ii,"/new/DataViews_no_filter_",ii, ".RData"))
+# 
+#   # ------------------------------------------------------------------------------------------------------- #
+#   ## Filter Spat
+#   if(ii %in% names(TCGA.samples.pancancer_with_screen_quantiseg_IS_SpatialTILs)){
+#     
+#     load(paste0("./data/PanCancer/",ii,"/new/DataViews_filter_Spat_",ii, ".RData"))
+#     
+#     keep.samples.filter_Spat <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS_SpatialTILs[[ii]], 1, 15)
+#     LRpairs.filter_Spat <- L_R_pairs[keep.samples.filter_Spat, , drop = FALSE]
+#     Cytokinepairs.filter_Spat <- Cytokine_pairs[keep.samples.filter_Spat, , drop = FALSE]
+#     
+#     # Integrate within DataViews
+#     DataViews.filter_Spat$LRpairs <- LRpairs.filter_Spat
+#     DataViews.filter_Spat$CYTOKINEpairs <- Cytokinepairs.filter_Spat
+#     
+#     save(DataViews.filter_Spat, file = paste0("./data/PanCancer/",ii,"/new/DataViews_filter_Spat_",ii, ".RData"))
+# 
+#   }
+#   # ------------------------------------------------------------------------------------------------------- #
+#   ## Filter Prot
+#   if(ii %in% names(TCGA.samples.pancancer_with_screen_quantiseg_IS_prot)){
+#     
+#     load(paste0("./data/PanCancer/",ii,"/new/DataViews_filter_prot_",ii, ".RData"))
+#     
+#     keep.samples.filter_prot <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS_prot[[ii]], 1, 15)
+#     LRpairs.filter_prot <- L_R_pairs[keep.samples.filter_prot, , drop = FALSE]
+#     Cytokinepairs.filter_prot <- Cytokine_pairs[keep.samples.filter_prot, , drop = FALSE]
+#     
+#     # Integrate within DataViews
+#     DataViews.filter_prot$LRpairs <- LRpairs.filter_prot
+#     DataViews.filter_prot$CYTOKINEpairs <- Cytokinepairs.filter_prot
+#     
+#     save(DataViews.filter_prot, file = paste0("./data/PanCancer/",ii,"/new/DataViews_filter_prot_",ii, ".RData"))
+# 
+#   }
+#   
+# })
 a <- as.matrix(L_R_pairs_log10)
 b <- as.matrix(L_R_pairs_log2)
 c <- as.matrix(DataViews.no_filter$LRpairs)
@@ -2000,12 +1997,6 @@ data <- data.frame(log10 = as.vector(a), log2 = as.vector(b), compute = as.vecto
 pairs(~., data = data, lower.panel = panel.cor, upper.panal = panel.cor)
 
 
-
-"A2M", "LRP1"
-
-RNA.tpm
-gene_expr["A2M","TCGA-02-0047-01"]
-gene_expr["LRP1","TCGA-02-0047-01"]
 
 
 

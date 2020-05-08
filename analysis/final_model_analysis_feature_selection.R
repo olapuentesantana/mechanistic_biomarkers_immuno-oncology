@@ -28,7 +28,7 @@ library(ggpubr)
 # ****************
 # Select cancer type
 ## no filter
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
+load("./pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 ## filter spat
 #load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
@@ -52,7 +52,7 @@ views <- c(pathways = 'gaussian', #1
 # Select data to examine
 
 # All: comparison
-view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[8])
+view_combinations <- list(views[c(1,3)], views[1], views[3])
 
 # ------------------------------------------------------------------------------------------------------------ #
 # Collect data from L21 cross-validation results --> kfold = 5
@@ -61,13 +61,16 @@ view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[8])
 # **************** 
 # Initialize variable to collect results
 summary_view_features <- NULL
-algorithms <- c("L21", "Elastic_Net")
-analysis <- c("all","all_top")
+algorithms <- c("Elastic_Net")
+analysis <- c("all")
 
-for (Cancer in PanCancer.names){
+# for (Cancer in PanCancer.names){
 
-  load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
-  file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
+  # load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
+  load(paste0("../data/Federica_presentation_colab/DataViews_no_filter_SKCM.RData"))
+
+  # file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
+  file <- dir(paste0("../output/Federica_presentation_colab"), full.names = T, recursive = F)
 
   summary_analysis <- do.call(rbind, lapply(analysis, function(anal){
     
@@ -127,8 +130,8 @@ for (Cancer in PanCancer.names){
       }))
 
       n_algorithms <- length(all_cv_res)
-      n_iterations <- length(all_cv_res$L21)
-      n_tasks <- length(all_cv_res$L21[[1]]$performances$MSE)
+      n_iterations <- length(all_cv_res$Elastic_Net)
+      n_tasks <- length(all_cv_res$Elastic_Net[[1]]$performances$MSE)
       n_features <- length(unique(summary_alg$feature))
       
       summary_alg$AnalysisType <- rep(anal, len = n_algorithms * n_iterations * n_tasks * n_features)
@@ -143,7 +146,7 @@ for (Cancer in PanCancer.names){
   
   summary_view_features <- rbind(summary_view_features, summary_analysis)
   
-}
+# }
 
 ##############################################################################
 # Visualization
@@ -188,7 +191,7 @@ names(alpha.analysis_alg) <- levels(summary_view_features$Analysis_Alg)
 
 # Sort features per median value and all tasks (~ feature + dataType + CancerType + algorithm)
 ## Get median features
-median.features <- aggregate(estimate ~ feature + DataType  + CancerType, 
+median.features <- aggregate(estimate ~ feature + DataType  + CancerType , 
                                           FUN = "median", na.rm = TRUE, data = summary_view_features)
 ## Sort features by median value:
 median.features.sort <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
@@ -211,7 +214,9 @@ summary_view_features_tmp.order$feature <- factor(summary_view_features_tmp.orde
 # Per task, DataType
 # a)
 
-sapply(names(colors.DataType)[c(2:4)], function(input){
+# sapply(names(colors.DataType)[c(2:4)], function(input){
+  
+input <- "pathways_immunecells"
 
   summary_view_features.mech_sig <- subset(summary_view_features_tmp.order, DataType == input)
 
@@ -248,7 +253,7 @@ sapply(names(colors.DataType)[c(2:4)], function(input){
 
   })
 
-})
+#})
 
 # b)
 # Per CancerType
@@ -317,20 +322,20 @@ frequency$sign.feature <- factor(frequency$sign.feature)
 # direction <- ifelse(any(sign == 1), names(sign)[which(sign == 1)], 0)
 
 # Per CancerType
-sapply(names(colors.cancer_types), function(Cancer){
-  
+# sapply(names(colors.cancer_types), function(Cancer){
+Cancer = "SKCM(n=467)"
   # Per dataType
-  sapply(names(colors.DataType), function(input){
-  
+  # sapply(names(colors.DataType), function(input){
+input = "pathways_immunecells"
     frequency.cancer.input <- subset(frequency, DataType == input & CancerType == Cancer)
   
-    ggplot(frequency.cancer.input, aes(x = feature, y = estimate, fill = Analysis_Alg)) +
+      ggplot(frequency.cancer.input, aes(x = feature, y = estimate)) +# fill = Analysis_Alg)) +
       geom_bar(stat="identity", color="black") +
       geom_text(aes(label= sign.feature), stat = "identity", color="black", size = 3, 
                 position = position_stack(vjust = 0.5)) +
-      scale_fill_manual(name = "Analysis", 
-                         labels = names(color.analysis_alg),
-                         values = color.analysis_alg)  +
+      # scale_fill_manual(name = "Analysis", 
+      #                    labels = names(color.analysis_alg),
+      #                    values = color.analysis_alg)  +
       theme_minimal() +
       facet_grid(task ~ .) +
       scale_x_discrete(labels = function(x) substr(x,1,20)) +

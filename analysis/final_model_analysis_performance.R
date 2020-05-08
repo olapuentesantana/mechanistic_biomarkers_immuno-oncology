@@ -13,8 +13,8 @@
 
 # ****************
 # working directory
-#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
 
 # ****************
 # packages
@@ -29,7 +29,7 @@ library(ggpubr)
 # ****************
 # Select cancer type
 ## no filter
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
+load("./pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 ## filter spat
 #load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
@@ -65,7 +65,7 @@ views <- c(pathways = 'gaussian', #1
 # view_combinations <- list(views[c(1,3)], views[1], views[3])
 
 # All: comparison
-view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[8])
+view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[7], views[5])
 
 # ------------------------------------------------------------------------------------------------------------ #
 # Collect data from L21 cross-validation results --> kfold = 5
@@ -74,15 +74,18 @@ view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[8])
 # **************** 
 # Initialize variable to collect results
 summary_view_all <- NULL
-algorithms <- c("L21", "Elastic_Net")
+algorithms <- c("Elastic_Net")
 # algorithms <- c("L21")
-analysis <- c("all","all_top")
+analysis <- c("all")
 
-for (Cancer in PanCancer.names){
+#for (Cancer in PanCancer.names){
+  Cancer = "SKCM"
+  # load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
+  load(paste0("../data/Federica_presentation_colab/DataViews_no_filter_SKCM.RData"))
   
-  load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
-  file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
-    
+  # file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
+  file <- dir(paste0("../output/Federica_presentation_colab"), full.names = T, recursive = F)
+  
   summary_analysis <- do.call(rbind, lapply(analysis, function(anal){
 
       summary_view <- do.call(rbind, lapply(1:length(view_combinations), function(view){
@@ -129,6 +132,16 @@ for (Cancer in PanCancer.names){
 
                 return(info)
               }))
+              summary_subtask <- subset(summary_task, task %in% c("CYT","IS","RohIS","chemokine","IS_Davoli", "IFny",
+                                                                 "ExpandedImmune","T_cell_inflamed"))
+              common <- data.frame(algorithm = rep(alg, times = 2),
+                                   iteration = rep(iteration, times = 2),
+                                   metric = rep(measure, times = 2),
+                                   task = c("common_all", "common_top"),
+                                   perf_min = c(median(summary_task$perf_min), median(summary_subtask$perf_min)))
+              
+              summary_task <- rbind(summary_task, common)
+              
               return(summary_task)
             }))
             return(summary_measure)
@@ -138,9 +151,9 @@ for (Cancer in PanCancer.names){
 
       n_views <- length(view_combinations)
       n_algorithms <- length(all_cv_res)
-      n_iterations <- length(all_cv_res$L21)
-      n_measures <- length(all_cv_res$L21[[1]]$performances)
-      n_tasks <- length(all_cv_res$L21[[1]]$performances$MSE)
+      n_iterations <- length(all_cv_res$Elastic_Net)
+      n_measures <- length(all_cv_res$Elastic_Net[[1]]$performances)
+      n_tasks <- length(all_cv_res$Elastic_Net[[1]]$performances$MSE) + 2
 
       summary_alg$AnalysisType <- rep(anal, len = n_algorithms * n_iterations * n_measures * n_tasks)
       summary_alg$DataType <- rep(input_name, len = n_algorithms * n_iterations * n_measures * n_tasks)
@@ -154,7 +167,7 @@ for (Cancer in PanCancer.names){
  }))
 
   summary_view_all <- rbind(summary_view_all, summary_analysis)
-}
+#}
 
 # ------------------------------------------------------------------------------------------------------------ #
 # Collect data from other algorithms cross-validation results --> kfold = 5
@@ -284,41 +297,45 @@ names(alpha.analysis_alg) <- levels(summary_view_all.SpCorr$Analysis_Alg)
 # One plot per task: compare different data types across types of tumors (L21 and EN)
 ## ----------------- ------------------------------------------------------ ##
 
+
 # Per CancerType
-sapply(names(colors.tasks), function(ImmuneResponse){
+# sapply(names(colors.tasks), function(ImmuneResponse){
+#   
+summary_view_all.SpCorr.task <- subset(summary_view_all.SpCorr, task %in% c("common_top") & 
+                                       DataType %in% c("pathways", "immunecells", "pathways_immunecells", "transcript"))
   
-  summary_view_all.SpCorr.task <- subset(summary_view_all.SpCorr, task == ImmuneResponse)
-  
-  ggplot(summary_view_all.SpCorr.task, aes(x = CancerType, y = perf_min, fill = DataType,
-                                           colour = DataType, alpha = Analysis_Alg)) +
-    geom_boxplot(outlier.shape = NA) +
+ggplot(summary_view_all.SpCorr.task, aes(x = DataType, y = perf_min, fill = DataType,
+                                           colour = DataType, alpha = task)) +
+    geom_boxplot() +
     scale_fill_manual(name = "Mechanistic signatures", 
-                      labels = names(colors.DataType[1:5]),
-                      values = colors.DataType[1:5]) +
-    scale_color_manual(name = "Mechanistic signatures", 
-                       labels = names(colors.DataType[1:5]),
-                       values = colors.DataType[1:5]) + 
-    scale_alpha_manual(name = "Algorithms", 
-                        labels = names(alpha.analysis_alg),
-                        values = alpha.analysis_alg)  +
-    theme_minimal() +
-    #ylim(c(0,1)) +
-    coord_fixed(ratio = 4) +
+                      labels = names(colors.DataType[c(1,3,4,6)]),
+                      values = colors.DataType[c(1,3,4,6)]) +
+    scale_color_manual(name = "Mechanistic signatures",
+                       labels = names(colors.DataType[c(1,3,4,6)]),
+                       values = colors.DataType[c(1,3,4,6)]) +
+    scale_alpha_manual(name = "Task",
+                     labels = c("common_top"),
+                     values = c(0.5)) +
+    theme_bw() +
+    ylim(c(0.6,1)) +
+    #coord_fixed(ratio = 4) +
     #facet_grid(algorithm ~ .) +
-    scale_x_discrete(labels = function(x) substr(x,1,13)) +
-    theme(axis.text.x = element_text(size=10,face="bold", angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
-          axis.text.y = element_text(size=10,face="bold"), axis.ticks.x = element_line(size = 1), axis.ticks.y = element_line(size = 1),
-          axis.title.y = element_text(size=10,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
-          legend.position = "bottom", legend.direction = "horizontal",
-          legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
-          panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) +
-    labs(y = "SpCorr") + 
-    ggtitle(paste0("PanCancer comparison of mechanistic signatures performance using ", ImmuneResponse, "(all tasks)"))
+    scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
+                                "pathways"="Pathways",
+                                "pathways_immunecells"="Pathways \n + \n Immunecells",
+                                "transcript" = "Transcriptomics")) +
+    theme(axis.text.x = element_text(size=14,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
+          axis.text.y = element_text(size=14,face="bold"), axis.ticks.x = element_line(size=1), axis.ticks.y = element_line(size=1),
+          axis.title.y = element_text(size=14,face="bold",vjust = 0.9), strip.background = element_blank(), 
+          legend.position = "right") +
+          # legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
+          # panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) +
+    labs(y = "Spearman Correlation") 
+    # ggtitle(paste0("PanCancer comparison of mechanistic signatures performance using ", ImmuneResponse, "(all tasks)"))
   
-  ggsave(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/figures/new_v2/PanCancer/Performance/", 
-                "PanCancer_EN_vs_L21_with_all_datatypes_", ImmuneResponse ,"_all_tasks.pdf"), width = 12, height = 12)
+  ggsave(paste0("../figures/Federica_presentation_colab/PROGENy_updated/Elastic_Net_mechanistic_signatures_perfomance_common_across_top_tasks.pdf"), width = 12, height = 12)
   
-})
+#})
 
 ## ------------------------------------------------------------------------ ##
 # 2. Cancer specific comparison:
