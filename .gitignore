@@ -8,6 +8,16 @@ data/all_genes_ICB_proxies.RData
 data/model_human_full.rda
 data/LR.pairs.Ramilowski.RData
 data/Federica_presentation_colab
+data/iTALK_database.rda
+data/cellphonedb_protein_curated.csv
+data/hgnc-symbol-check.csv
+data/hgnc-symbol-check-2.csv
+data/hgnc-symbol-check-3.csv
+data/ImmuneXpressoResults.csv
+data/unique_cytokines_CellPhoneDB_input.csv
+data/unique_cytokines_ImmuneXpresso_input.csv
+data/unique_cytokines_iTALK_input.csv
+data/CYTOKINE_pairs_subnetwork.RData
 R/Lung_different_biopsies.zip
 R/Lung_different_biopsies
 output/

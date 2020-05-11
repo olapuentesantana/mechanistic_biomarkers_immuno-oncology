@@ -14,7 +14,6 @@
 # ****************
 # working directory
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-#setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
 
 # ****************
 # packages
@@ -39,10 +38,10 @@ source("../R/L21_regularization_EN/predict_L21.R")
 load("./pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 ## filter spat
-#load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
+#load("./pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
 #PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS_SpatialTILs)
 ## filter prot
-#load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData")
+#load("./pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData")
 #PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS_prot)
 
 # ****************
@@ -52,11 +51,12 @@ views <- c(pathways = 'gaussian', #1
            immunecells = 'gaussian', #3
            TFs = 'gaussian', #4
            transcript = 'gaussian', #5
-           LRpairs = 'gaussian', #6
-           CYTOKINEpairs = 'gaussian')  #7)  
+           sTIL = 'gaussian', #6
+           LRpairs = 'gaussian', #7
+           CYTOKINEpairs = 'gaussian')  #8) 
 
-# view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[8])
-view_combinations <- list(views[c(1,3)], views[1], views[3])
+# all
+view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[7], views[5])
 
 # ****************
 # Initialize variables
@@ -71,8 +71,15 @@ all.predictions.test <- list()
 
 # ****************
 # External datasets
-Datasets.names <-  dir("../data/Validation/Francesca", full.names = F, recursive = F)
-names(Datasets.names) <- c("SKCM", "SKCM", "SKCM", "STAD", "SKCM", "SKCM", "GBM")
+
+# Validation sets DataViews data: pre-treatment
+load("../data/Validation/All_DataViews_test_pre.RData")
+
+# Validation sets ImmuneResponse data: pre-treatment
+load("../data/Validation/All_Labels_test_pre.RData")
+
+Datasets.names <- names(All.DataViews.test)
+names(Datasets.names) <- c("SKCM", "SKCM", "SKCM", "STAD", "SKCM", "SKCM", "GBM", "SKCM", "SKCM")
 
 for (Cancer in PanCancer.names){
     
@@ -90,12 +97,6 @@ for (Cancer in PanCancer.names){
     predictions.test <- lapply(Datasets.names[filter.cancer], function(dataset){
       
       cat("Validation data set:",dataset, "\n")
-    
-      # Validation sets DataViews data: pre-treatment
-      load("../data/Validation/All_DataViews_test_pre.RData")
-    
-      # Validation sets ImmuneResponse data: pre-treatment
-      load("../data/Validation/All_Labels_test_pre.RData")
       
       summary_analysis <- lapply(analysis, function(anal){
         

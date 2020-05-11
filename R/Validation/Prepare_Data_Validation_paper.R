@@ -22,9 +22,9 @@ setwd("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-onco
 
 # ****************
 # scritps 
-source("../R/Validation/compute.pathways.scores.R")
-source("../R/Validation/compute.TF.activity.R")
-source("../R/Validation/compute.LR.pairs.R")
+source("../R/compute.pathways.scores.R")
+source("../R/compute.TF.activity.R")
+source("../R/compute.LR.pairs.R")
 
 # ****************
 # External datasets
@@ -373,9 +373,70 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     
 }))
 
-All.DataViews.test <- DataViews.test
-#All.Labels.test <- Labels.test
-save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
-#save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
+# All.DataViews.test <- DataViews.test
+# All.Labels.test <- Labels.test
+# save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
+# save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
 
+# --------------------------- #
+# Join SKCM datasets
+# --------------------------- #
+
+# Hugo, Liu, Riaz --> PD-1
+# Gide, Auslander --> PD-1 & CTLA4
+
+load("../data/Validation/All_DataViews_test_pre.RData")
+load("../data/Validation/All_Labels_test_pre.RData")
+
+# All validation datasets
+Datasets.names <-  dir("../data/Validation/Francesca", full.names = F, recursive = F)
+names(Datasets.names) <- c("SKCM", "SKCM", "SKCM", "STAD", "SKCM", "SKCM", "GBM")
+
+# Only validation SKCM datasets
+filter.cancer <- which(names(Datasets.names) == "SKCM")
+Datasets.names.SKCM <- Datasets.names[filter.cancer]
+
+# Initialize new comb.datasets
+All.DataViews.test[["comb.Hugo_Liu_Riaz"]] <- vector("list", length(names(All.DataViews.test$Auslander)))
+names(All.DataViews.test[["comb.Hugo_Liu_Riaz"]]) <- names(All.DataViews.test$Auslander)
+All.DataViews.test[["comb.Gide_Auslander"]] <- vector("list", length(names(All.DataViews.test$Auslander)))
+names(All.DataViews.test[["comb.Gide_Auslander"]]) <- names(All.DataViews.test$Auslander)
+
+All.Labels.test[["comb.Hugo_Liu_Riaz"]] <- vector("list", length(names(All.Labels.test$Auslander)))
+names(All.Labels.test[["comb.Hugo_Liu_Riaz"]]) <- names(All.Labels.test$Auslander)
+All.Labels.test[["comb.Gide_Auslander"]] <- vector("list", length(names(All.Labels.test$Auslander)))
+names(All.Labels.test[["comb.Gide_Auslander"]]) <- names(All.Labels.test$Auslander)
+
+# Hugo, Liu, Riaz --> PD-1
+All.DataViews.test[["comb.Hugo_Liu_Riaz"]] <- lapply(names(All.DataViews.test$Auslander), function(view){
+  
+  tmp.var <- intersect(colnames(All.DataViews.test[["Hugo"]][[view]]), colnames(All.DataViews.test[["Riaz"]][[view]]))
+  tmp.var <- intersect(colnames(All.DataViews.test[["Liu"]][[view]]), tmp.var)
+  
+  All.DataViews.test[["comb.Hugo_Liu_Riaz"]][[view]] <- rbind(All.DataViews.test[["Hugo"]][[view]][,tmp.var], 
+                                                              All.DataViews.test[["Liu"]][[view]][,tmp.var],
+                                                              All.DataViews.test[["Riaz"]][[view]][,tmp.var])
+  
+})
+names(All.DataViews.test[["comb.Hugo_Liu_Riaz"]]) <- names(All.DataViews.test$Auslander)
+
+All.Labels.test[["comb.Hugo_Liu_Riaz"]] <- rbind(All.Labels.test[["Hugo"]], 
+                                                 All.Labels.test[["Liu"]],
+                                                 All.Labels.test[["Riaz"]])
+
+# Gide, Auslander --> PD-1 & CTLA4
+All.DataViews.test[["comb.Gide_Auslander"]] <- lapply(names(All.DataViews.test$Auslander), function(view){
+  
+  tmp.var <- intersect(colnames(All.DataViews.test[["Gide"]][[view]]), colnames(All.DataViews.test[["Auslander"]][[view]]))
+  All.DataViews.test[["comb.Gide_Auslander"]][[view]] <- rbind(All.DataViews.test[["Gide"]][[view]][,tmp.var], 
+                                                               All.DataViews.test[["Auslander"]][[view]][,tmp.var])
+  
+})
+names(All.DataViews.test[["comb.Gide_Auslander"]]) <- names(All.DataViews.test$Auslander)
+
+All.Labels.test[["comb.Gide_Auslander"]] <- rbind(All.Labels.test[["Gide"]], 
+                                                  All.Labels.test[["Auslander"]])
+                                                        
+# save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
+# save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
 
