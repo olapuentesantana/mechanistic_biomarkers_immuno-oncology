@@ -7,10 +7,11 @@ cross_validation <- function(drug_source, views_source, view_combination, algori
   # ****************
   # scripts
   source("R/GLMs.R")
+  source("R/mgaussian.R")
   source("R/BEMKL.R")
   source("R/L21_R.R")
 
-    # ****************
+  # ****************
   # General variables:
   names_view <- names(view_combination) # Need data type 
   N <- nrow(drug_source) # number of observations
@@ -52,13 +53,17 @@ cross_validation <- function(drug_source, views_source, view_combination, algori
     
     cat("Model -->", algorithm, "\n")
     
-    if (algorithm %in% c("Lasso", "Elastic_Net", "CV_linear_reg_L1&L2")){
+    if (algorithm %in% c("Lasso", "Elastic_Net")){
       
       # Generalized linear models:
       output[[k]] <- GLMs(drug_source, views_source, view_combination, learning_indices, prediction_indices,
                           standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
       
+    }else if (algorithm %in% "Multi_Task_EN"){
       
+      # Multi-task (Elastic Net):
+      output[[k]] <- mgaussian(drug_source, views_source, view_combination, learning_indices, prediction_indices,
+                               standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
       
     }else if (algorithm %in% "BEMKL"){
       

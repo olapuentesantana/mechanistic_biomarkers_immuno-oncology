@@ -135,7 +135,7 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
                                view_combination = names_view,
                                measure_type = "mse",
                                parameters = parameters,
-                               parallelize = F, iteration = iteration)
+                               parallelize = T, iteration = iteration)
 
     coef_values[[o]]<- state$cv.glmnet.features
     hyperparameter_values[[o]] <- state$cv.glmnet.hyperparameters

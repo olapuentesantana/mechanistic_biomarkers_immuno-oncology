@@ -3,12 +3,11 @@
 ###########################################################################################
 
 elastic_net_train <- function(drug_source, views_source, view_combination, standardize_any = F, standardize_response = F,
-                                family, parameters, measure_type = "mse", k_fold = 5, parallelize = F, iteration) {
+                                family, parameters, measure_type = "mse", k_fold = 5, parallelize = T, iteration) {
   
   # ****************
   # packages
   library(glmnet)
-  library(parallel)
   #library(glmnet,lib.loc= Sys.getenv("R_LIBS")) # cluster
   
   # ****************
@@ -18,12 +17,15 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   Ndrug <- ncol(drug_source) # number of tasks (output variables)
   P <- length(names_view) # number of views
   alpha_range <- parameters$alpha
-  
+  drugs <- colnames(drug_source)
+  view_source.comb <- do.call(cbind, lapply(1:length(views_source), function(X) return(views_source[[X]])))
+  features <- colnames(view_source.comb)
+
   # Normalization training set: Z score
   ## View:
-  views_source.Z <- views_source
+  views_source.Z <- as.matrix(view_source.comb)
   ## Response: 
-  drug_source.Z <- drug_source
+  drug_source.Z <- as.matrix(drug_source)
 
   # ****************
   # Hyperparameters estimation: alpha and lambda
@@ -52,7 +54,8 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
               family = family,
               alpha = X, 
               type.measure = measure_type, 
-              standardize = FALSE, 
+              standardize = FALSE,
+              standardize.response = FALSE, 
               intercept = TRUE, 
               keep = TRUE,
               nfolds = k_fold,
@@ -72,10 +75,22 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
     names(tmp) = X$lambda
     return(tmp)})
   # COEF
-  coef_for_each_alpha <- lapply(fit, function(X) {
-    tmp = as.matrix(coef(X, s = X$lambda))
-    colnames(tmp) = X$lambda
-    return(tmp)})
+  if (family == "gaussian"){
+    coef_for_each_alpha <- lapply(fit, function(X) {
+      tmp = as.matrix(coef(X, s = X$lambda))
+      colnames(tmp) = X$lambda
+      return(tmp)})
+    
+  } else if (family == "mgaussian"){
+    coef_for_each_alpha <- lapply(fit, function(X) {
+      coef_for_each_alpha <- lapply(drugs, function(Y) {
+        tmp = coef(X, s = X$lambda)[[Y]]
+        tmp@Dimnames[[2]] = as.character(X$lambda)
+        return(tmp)})
+      names(coef_for_each_alpha) <- drugs
+      return(coef_for_each_alpha)})
+  }
+ 
   # Saving values -->
   data_task_cv.glmnet <- list(MSE = MSE_for_each_alpha, SD = sd_for_each_alpha, coef = coef_for_each_alpha)
 
@@ -114,15 +129,32 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   names(parameters.glmnet.1se) <- names(parameters.glmnet.min) <- c("alpha", "lambda")
 
   # 3. Selecting coefficients for both pairs of alpha-lambda
+  if (family == "gaussian"){
   # Alpha-lambda min
-  coef_min <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_min_MSE,"-")]][,lambda_min_MSE])
-  features.glmnet.min <- coef_min ; names(features.glmnet.min) <- rownames(coef_min)
+    coef_min <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_min_MSE,"-")]][,lambda_min_MSE])
+    features.glmnet.min <- coef_min ; names(features.glmnet.min) <- rownames(coef_min)
   # Alpha-lambda 1se
-  coef_1se <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_1se_MSE,"-")]][,lambda_1se_MSE])
-  features.glmnet.1se <- coef_1se ; names(features.glmnet.1se) <- rownames(coef_1se)
+    coef_1se <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_1se_MSE,"-")]][,lambda_1se_MSE])
+    features.glmnet.1se <- coef_1se ; names(features.glmnet.1se) <- rownames(coef_1se)
+    
+  } else if (family == "mgaussian"){
+  # Alpha-lambda min
+    coef_min_all_tasks <- do.call(cbind, lapply(drugs, function (Z){
+      coef_min <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_min_MSE,"-")]][[Z]][,lambda_min_MSE])
+      return(coef_min)
+    }))
+    colnames(coef_min_all_tasks) <- drugs ; features.glmnet.min <- coef_min_all_tasks 
+  # Alpha-lambda 1se
+    coef_1se_all_tasks <- do.call(cbind, lapply(drugs, function (Z){
+      coef_1se <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_1se_MSE,"-")]][[Z]][,lambda_1se_MSE])
+      return(coef_1se)
+    }))
+    colnames(coef_1se_all_tasks) <- drugs ; features.glmnet.1se <- coef_1se_all_tasks 
+  }
+    
   # mse.1se and mse.min from internal cross validation for iteration k
-  lowest.mse.cv.1se = one.se_MSE
-  lowest.mse.cv.min = min_MSE
+  lowest.mse.cv.1se <- one.se_MSE
+  lowest.mse.cv.min <- min_MSE
   
   # Per task
   Coef_cv.glmnet <- list(features.glmnet.1se, features.glmnet.min) ; names(Coef_cv.glmnet) <- c("1se.mse","min.mse")
@@ -163,9 +195,8 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   # Freqs <- cbind(rep(colnames(Y), each = p), rep(colnames(X), q), as.data.frame(freq))
   # names(Freqs) <- c("Names_of_Y", "Names_of_X", "frequency")
   
-  return(list(cv.glmnet.data = data_task_cv.glmnet,
-         cv.glmnet.hyperparameters = Hyperparameters_cv.glmnet,
-         cv.glmnet.features = Coef_cv.glmnet,
-         cv.glmnet.mse = MSE_cv.glmnet))
-         #cv.glmnet.freq = Freqs[2:3]))
+  return(list(cv.glmnet.hyperparameters = Hyperparameters_cv.glmnet,
+              cv.glmnet.features = Coef_cv.glmnet,
+              cv.glmnet.mse = MSE_cv.glmnet))
+              #cv.glmnet.freq = Freqs[2:3]))
 }

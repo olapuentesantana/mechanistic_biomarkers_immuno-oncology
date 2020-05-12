@@ -184,11 +184,11 @@ predictions_immune_response <- all.predictions.test
 # colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c","#c95574","#747fca","#ca743e"))
 # names(colors.DataType) <- names(predictions_immune_response$GBM$Zhao$all)
 
-colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c", "#c95574"))
+colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c","#c95574","#747fca","#ca743e"))
 names(colors.DataType) <- names(predictions_immune_response$SKCM$Gide$all)
 
-colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0",
-                          "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
+colors.tasks <- toupper(c("#84be45","#9c5bce","#4c923d","#c24eac","#5dc597","#d34782","#368868","#cf483d","#5ba2d6",
+                          "#d1a43c","#616cc5","#85873e","#c086c7","#c07643","#ba6272"))
 names(colors.tasks) <- names(predictions_immune_response$SKCM$Gide$all$pathways$Elastic_Net$pred)
 
 colors.algorithm <- toupper(c("#ff7433"))#,"#853760"))
@@ -214,17 +214,25 @@ predictions_immune_response <- lapply(PanCancer.names, function(Cancer){
             
               df.label <- predictions_immune_response[[Cancer]][[dataset]][[anal]][[view]][[algorithm]]$lab[[task]][[1]]
               
-              if (dataset %in% c("Kim","Gide","Riaz","Liu")){
+              if (dataset %in% c("Kim","Gide","Riaz","Liu", "comb.Gide_Auslander")){
                 df.label <- gsub(" ","", df.label)
                 df.label <- gsub("CR|PR|MR|PRCR","R", df.label)
                 df.label <- gsub("SD|PD|PD ","NR", df.label)
+                
               } else if (dataset == "Hugo"){
                 df.label <- gsub("Complete Response|Partial Response", "R", df.label)
                 df.label <- gsub("Progressive Disease","NR", df.label)
+                
               } else if (dataset == "Zhao"){
                 df.label <- gsub("Yes|Yes, > 6 months stable","R", df.label)
                 df.label <- gsub("No","NR", df.label)
-              }
+                
+              } else if (dataset == "comb.Hugo_Liu_Riaz"){
+                df.label <- gsub(" ","", df.label)
+                df.label <- gsub("CR|PR|MR|PRCR|CompleteResponse|PartialResponse","R", df.label)
+                df.label <- gsub("SD|PD|PD|ProgressiveDisease","NR", df.label)
+                
+              } 
               predictions_immune_response[[Cancer]][[dataset]][[anal]][[view]][[algorithm]]$lab[[task]][[1]] <- df.label
               return(predictions_immune_response[[Cancer]][[dataset]][[anal]][[view]][[algorithm]]$lab[[task]])
             })
@@ -390,7 +398,7 @@ names(alpha.analysis_alg) <- levels(AUC.mean.sd$Analysis_alg)
 
 # Subset # 
 CancerType <- "SKCM"
-tmp.barplot <- subset(AUC.mean.sd, Cancer == CancerType & Task %in% c("common_all", "common_top"))
+tmp.barplot <- subset(AUC.mean.sd, Cancer == CancerType & Task %in% c("consensus_all", "consensus_top", "common_all", "common_top"))
 #
 # CancerType <- "STAD"
 # AlgorithmType <- "L21"
@@ -402,11 +410,11 @@ ggplot2::ggplot(tmp.barplot, aes(x=View, y=round(AUC.median,2), fill=Task,
                                  colour = Task)) + # alpha = Analysis_alg)) +
   ggplot2::geom_bar(stat="identity", position = position_dodge()) +
   ggplot2::scale_fill_manual(name = "Task", 
-                             labels = c("common_all","common_top"),
-                              values = as.vector(colors.tasks[1:2])) +
+                             labels =c("consensus_all", "consensus_top", "common_all", "common_top"),
+                              values = as.vector(colors.tasks[1:4])) +
   ggplot2::scale_color_manual(name = "Task", 
-                     labels = c("common_all","common_top"),
-                     values =  as.vector(colors.tasks[1:2])) + 
+                     labels =c("consensus_all", "consensus_top", "common_all", "common_top"),
+                     values =  as.vector(colors.tasks[1:4])) + 
   # ggplot2::scale_alpha_manual(name = "Algorithms", 
   #                    labels = names(alpha.analysis_alg),
   #                    values = alpha.analysis_alg)  +
@@ -419,8 +427,11 @@ ggplot2::ggplot(tmp.barplot, aes(x=View, y=round(AUC.median,2), fill=Task,
   ggplot2::geom_text(aes(label= round(AUC.median,2)),stat = "identity", color="black", size = 3, angle = 90,
                      position = position_dodge(0.9)) +
   scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
+                              "LRpairs"= "L-R pairs",
                               "pathways"="Pathways",
-                              "pathways_immunecells"="Pathways \n + \n Immunecells")) +  
+                              "pathways_immunecells"="Pathways \n + \n Immunecells",
+                              "TFs" = "TFs",
+                              "transcript" = "Transcriptomics")) +  
   theme(axis.text.x = element_text(size=10,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
         axis.text.y = element_text(size=10,face="bold"), axis.ticks.x = element_line(size = 1), axis.ticks.y = element_line(size = 1),
         axis.title.y = element_text(size=10,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
