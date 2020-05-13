@@ -9,6 +9,9 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   # packages
   library(glmnet)
   #library(glmnet,lib.loc= Sys.getenv("R_LIBS")) # cluster
+  # Parallel
+  require(doMC)
+  registerDoMC(cores = 4)
   
   # ****************
   # General variables:
@@ -117,12 +120,12 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   one.se <- data_task_cv.glmnet$SD[[paste0(alpha_min_MSE,"-")]][which(names(data_task_cv.glmnet$SD[[paste0(alpha_min_MSE,"-")]]) == lambda_min_MSE)]
   high <- min_MSE + one.se
   interval_mse <- value_MSE_alphas[value_MSE_alphas < high]
-  interval_mse <- interval_mse[which(as.numeric(sapply(strsplit(names(interval_mse), split = "-.", fixed = TRUE), function(X) return(X[2])))
-                                   >= as.numeric(lambda_min_MSE))]
+  interval_mse <- interval_mse[which(sapply(strsplit(names(interval_mse), split = "-.", fixed = TRUE), head, 1) == alpha_min_MSE)]
+  interval_mse <- interval_mse[which(as.numeric(sapply(strsplit(names(interval_mse), split = "-.", fixed = TRUE), tail, 1)) >= as.numeric(lambda_min_MSE))]
   one.se_MSE <- interval_mse[which(interval_mse == max(interval_mse))]
   lambda_1se_MSE <- sapply(strsplit(names(one.se_MSE), split = "-.", fixed = TRUE), function(X) return(X[2]))
-  alpha_1se_MSE <- sapply(strsplit(names(one.se_MSE), split = "-.", fixed = TRUE), head, 1)
- 
+  alpha_1se_MSE <- alpha_min_MSE
+
   # Saving parameters for each iteration:
   parameters.glmnet.1se <- list(alpha_1se_MSE, lambda_1se_MSE)  
   parameters.glmnet.min <- list(alpha_min_MSE, lambda_min_MSE)
@@ -153,7 +156,7 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   }
     
   # mse.1se and mse.min from internal cross validation for iteration k
-  lowest.mse.cv.1se <- one.se_MSE
+  lowest.mse.cv.1se <- value_MSE_alphas[paste0(alpha_1se_MSE,"-.", lambda_1se_MSE)]
   lowest.mse.cv.min <- min_MSE
   
   # Per task

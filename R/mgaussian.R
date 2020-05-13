@@ -103,7 +103,7 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
                              view_combination = names_view,
                              measure_type = "mse",
                              parameters = parameters,
-                             parallelize = F, iteration = iteration)
+                             parallelize = T, iteration = iteration)
   
   coef_values <- state$cv.glmnet.features
   hyperparameter_values <- state$cv.glmnet.hyperparameters

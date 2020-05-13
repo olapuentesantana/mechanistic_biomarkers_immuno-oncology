@@ -35,16 +35,17 @@ views <- c(pathways = 'gaussian', #1
            CYTOKINEpairs = 'gaussian')  #8) 
 
 # ****************
-view_combinations <- list(views[c(1,3)])
+view_combinations <- list(views[1], views[c(1,3)])
 
 # ****************
 # data
 load("./data/parameters_4_all.RData")
+# parameters$Multi_Task_EN$alpha <- 0.5
 
 # ****************
 #input_algorithm = names(parameters)
 input_algorithm <- c("Multi_Task_EN")
-filter_tasks <- c("IPS","IMPRES", "Proliferation", "TIDE", "MSI")
+filter_tasks <- c("IPS","IMPRES", "Proliferation", "TIDE", "MSI","chemokine")
 
 for (Cancer in PanCancer.names){
   
@@ -54,7 +55,7 @@ for (Cancer in PanCancer.names){
   load(paste0("./data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))
   load(paste0("./data/PanCancer/",Cancer,"/new/ImmuneResponse_no_filter_", Cancer,"_matrix_format.RData"))
   
-  #ImmuneResponse.no_filter <- ImmuneResponse.no_filter[, -which(colnames(ImmuneResponse.no_filter) %in% filter_tasks)]
+  ImmuneResponse.no_filter <- ImmuneResponse.no_filter[, -which(colnames(ImmuneResponse.no_filter) %in% filter_tasks)]
   
   # sTIL_sum <- apply(DataViews.filter_Spat$sTIL,1, sum)
   # 
@@ -108,16 +109,18 @@ for (Cancer in PanCancer.names){
     names(all_cv_res) <- input_algorithm
     # Save results: name file changes together with input file
     if (length(i) == 1){
-      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_top_tasks_",names(i)[1],".RData"))
+      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_tasks_",names(i)[1],".RData"))
     }else if(length(i) == 2){
-      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_top_tasks_",names(i)[1],"_",names(i)[2],".RData"))
+      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_tasks_",names(i)[1],"_",names(i)[2],".RData"))
     }else if(length(i) == 3){
-      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_top_tasks_",names(i)[1],"_",names(i)[2],"_",names(i)[3],".RData"))
+      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_tasks_",names(i)[1],"_",names(i)[2],"_",names(i)[3],".RData"))
     }else if(length(i) == 4){
-      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_top_tasks_", names(i)[1],"_",names(i)[2],"_",names(i)[3], names(i)[4], ".RData"))
+      save(all_cv_res, file = paste0("./output/new_remove_all_genes/",Cancer,"/all_cv_res_",Cancer, "_train_rand100_with_all_tasks_", names(i)[1],"_",names(i)[2],"_",names(i)[3], names(i)[4], ".RData"))
     }
     
   })
   
 }
-    
+ 
+
+   
