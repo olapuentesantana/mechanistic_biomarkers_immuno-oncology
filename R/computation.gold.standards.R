@@ -9,8 +9,6 @@ computation.gold.standards <- function(RNA.raw_counts, RNA.tpm, list_gold_standa
   
   # ****************
   # scripts
-  source("../R/computation.IPS.R")
-  source("../R/computation.IMPRES.R")
   source("../R/computation.CYT.R")
   source("../R/computation.ICB_genes.R")
   

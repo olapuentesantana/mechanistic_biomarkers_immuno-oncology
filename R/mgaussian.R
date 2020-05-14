@@ -113,11 +113,20 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
   prediction_cv <- lapply(coef_values, function(X){mgaussian_test(prediction.X, X)})
   cat("prediction computed","\n")
   
+  # Four metrics
   MSE <- lapply(prediction_cv, function(X){apply((validation.Y - X)^2, 2, mean)})
+  # MSE <- lapply(MSE, mean)
+  
   SpCorr <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "spearman"))})
+  # SpCorr <- lapply(SpCorr, mean)
+  
   PeCorr <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "pearson"))})
+  # PeCorr <- lapply(PeCorr, mean)
+  
   CI <- lapply(prediction_cv, function(X){civalue(validation.Y, X)})
+  # CI <- lapply(CI, mean)
 
+  # Return performance and model info
   performances <- list(MSE=MSE, SpCorr=SpCorr, PeCorr=PeCorr, CI=CI)
   model <- state
   

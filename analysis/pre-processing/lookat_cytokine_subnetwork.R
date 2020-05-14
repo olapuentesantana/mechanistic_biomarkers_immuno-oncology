@@ -67,4 +67,29 @@ setdiff(colnames(DataViews.no_filter$CYTOKINEpairs), CYTOKINE.pairs_subnetwork)
 # save(CYTOKINE.pairs_subnetwork, file = "CYTOKINE_pairs_subnetwork.RData")
 
 
+#############################################################################################################
+# Filter by cell types commonly present in the TME (24 cell types) [source: Maisa's report]
+TME.cell_types <- c("Mature Adipocyte","Adipocyte Omental","CD19..B.cells", "CD4..T.cells",
+                    "CD4.CD25.CD45RA..naive.regulatory.T.cells","CD4.CD25.CD45RA..memory.regulatory.T.cells",       
+                    "CD4.CD25.CD45RA..naive.conventional.T.cells", "CD4.CD25.CD45RA..memory.conventional.T.cells",
+                    "CD8..T.cells", "Dendritic.Monocyte.Immature.derived", "Dendritic.Plasmacytoid", 
+                    "Endothelial.Lymphatic","Endothelial.Microvascular", "Fibroblast.Lymphatic", "Fibroblast.Skin.Normal",
+                    "Macrophage.Monocyte.derived", "Mast.cells", "Mast.cells.stimulated","CD14..Monocytes",
+                    "CD14.CD16..Monocytes", "CD14.CD16..Monocytes.1", "CD14.CD16..Monocytes.2", "NK.cells", "Neutrophils")
+
+# Average CAGE expression data for human protein-coding genes in the 144 human primary cells
+Expr.Lig_Rec <- read.csv2(file = "data/Ligand_Receptors_Rdata/ExpressionLigRec.csv")
+# Average CAGE expression data for all ligands and receptors in the 144 human primary cells
+Expr_genes <- read.csv2(file = "data/Ligand_Receptors_Rdata/ExpressionGenes.csv")
+# Curated ligand-receptor pairs in Ramilowski database (as of April 2015)
+Pairs.L.R <- read.csv2(file = "data/Ligand_Receptors_Rdata/PairsLigRec.csv")
+
+load("data/Ligand_Receptors_Rdata/LR.pairs.Ramilowski.RData")
+
+
+
+
+
+
+
 

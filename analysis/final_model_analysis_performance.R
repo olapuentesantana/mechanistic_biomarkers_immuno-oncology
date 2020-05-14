@@ -61,10 +61,10 @@ views <- c(pathways = 'gaussian', #1
 # view_combinations <- list(views[4], views[1], views[c(1,3)], views[3],views[c(3,6)])
 
 # Pathways, immune cells
-# view_combinations <- list(views[c(1,3)], views[1], views[3])
+view_combinations <- list(views[1], views[3], views[c(1,3)])
 
 # All: comparison
-view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[7], views[5])
+# view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[7], views[5])
 
 # ------------------------------------------------------------------------------------------------------------ #
 # Collect data from L21 cross-validation results --> kfold = 5
@@ -73,17 +73,17 @@ view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[7],
 # **************** 
 # Initialize variable to collect results
 summary_view_all <- NULL
-algorithms <- c("Elastic_Net")
+algorithms <- c("Multi_Task_EN")
 # algorithms <- c("L21")
 analysis <- c("all")
 
 #for (Cancer in PanCancer.names){
   Cancer = "SKCM"
   # load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
-  load(paste0("../data/Federica_presentation_colab/DataViews_no_filter_SKCM.RData"))
+  load(paste0("../data/PanCancer/", Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))
   
   # file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
-  file <- dir(path = paste0("../output/Federica_presentation_colab"), pattern = "all_cv_res_", full.names = T, recursive = F)
+  file <- dir(path = paste0("../output/new_remove_all_genes/",Cancer), pattern = "all_cv_res_", full.names = T, recursive = F)
   
   summary_analysis <- do.call(rbind, lapply(analysis, function(anal){
 
@@ -104,60 +104,53 @@ analysis <- c("all")
 
             tmp_iter <- tmp_alg[[iteration]]$performances
 
-            # 5 metrics
+            # 4 metrics
             summary_measure <- do.call(rbind, lapply(names(tmp_iter), function(measure){
 
               tmp_measure <- tmp_iter[[measure]]
-
-              # all tasks
-              summary_task <- do.call(rbind,lapply(names(tmp_measure), function(task){
-
-                tmp_task <- tmp_measure[[task]]
-
-                if (alg == "Elastic_Net") {
-                  info <- data.frame(algorithm = alg,
-                                     iteration = iteration,
-                                     metric = measure,
-                                     task = task,
-                                     perf_min = tmp_task$min.mse)
-
-                }else {
-                  info <- data.frame(algorithm = alg,
-                                     iteration = iteration,
-                                     metric = measure,
-                                     task = task,
-                                     perf_min = tmp_task)
-                }
-
-                return(info)
-              }))
-              summary_subtask <- subset(summary_task, task %in% c("CYT","IS","RohIS","chemokine","IS_Davoli", "IFny",
-                                                                 "ExpandedImmune","T_cell_inflamed"))
-              common <- data.frame(algorithm = rep(alg, times = 2),
-                                   iteration = rep(iteration, times = 2),
-                                   metric = rep(measure, times = 2),
-                                   task = c("common_all", "common_top"),
-                                   perf_min = c(median(summary_task$perf_min), median(summary_subtask$perf_min)))
               
-              summary_task <- rbind(summary_task, common)
-              
-              return(summary_task)
+              # cv- 1se.mse and min.mse
+              summary_cv <- do.call(rbind,lapply(names(tmp_measure), function(cv){
+                
+                tmp_cv <- tmp_measure[[cv]]
+  
+                  # if (alg == "Elastic_Net") {
+                    
+                    # info <- data.frame(algorithm = alg,
+                    #                    iteration = iteration,
+                    #                    metric = measure,
+                    #                    task = task,
+                    #                    perf_min = tmp_task$min.mse)
+  
+                  # }else {
+                info <- data.frame(algorithm = alg,
+                                   cv = cv,
+                                   iteration = iteration,
+                                   metric = measure,
+                                   task = c(names(tmp_cv),"common"),
+                                   perf_min = c(tmp_cv, mean(tmp_cv)))
+                
+                  # }
+  
+               return(info)
+             }))
+            return(summary_cv)
             }))
             return(summary_measure)
           }))
           return(summary_iter)
         }))
 
-      n_views <- length(view_combinations)
       n_algorithms <- length(all_cv_res)
-      n_iterations <- length(all_cv_res$Elastic_Net)
-      n_measures <- length(all_cv_res$Elastic_Net[[1]]$performances)
-      n_tasks <- length(all_cv_res$Elastic_Net[[1]]$performances$MSE) + 2
+      n_iterations <- length(all_cv_res[[algorithms[1]]])
+      n_measures <- length(all_cv_res[[algorithms[1]]][[1]]$performances)
+      n_cv <- length(all_cv_res[[algorithms[1]]][[1]]$performances$MSE) 
+      n_tasks <- length(all_cv_res[[algorithms[1]]][[1]]$performances$MSE$`1se.mse`) + 1
 
-      summary_alg$AnalysisType <- rep(anal, len = n_algorithms * n_iterations * n_measures * n_tasks)
-      summary_alg$DataType <- rep(input_name, len = n_algorithms * n_iterations * n_measures * n_tasks)
+      summary_alg$AnalysisType <- rep(anal, len = n_algorithms * n_iterations * n_measures * n_tasks * n_cv)
+      summary_alg$DataType <- rep(input_name, len = n_algorithms * n_iterations * n_measures * n_tasks * n_cv)
       summary_alg$CancerType <- rep(paste0(Cancer,"(n=",nrow(DataViews.no_filter$pathways),")"),
-                                    len =  n_algorithms * n_iterations * n_measures * n_tasks)
+                                    len =  n_algorithms * n_iterations * n_measures * n_tasks * n_cv)
 
       return(summary_alg)
     }))
@@ -175,39 +168,40 @@ analysis <- c("all")
 # Theoretically, we cannot assume that the response follows a normal distribution, so it would be better 
 # to use spearman correlation as metric
 
-summary_view_all.SpCorr <- subset(summary_view_all, metric == "SpCorr")
-summary_view_all.SpCorr$DataType <- factor(summary_view_all.SpCorr$DataType)
-summary_view_all.SpCorr$CancerType <- factor(summary_view_all.SpCorr$CancerType)
-summary_view_all.SpCorr$task <- factor(summary_view_all.SpCorr$task)
-summary_view_all.SpCorr$AnalysisType <- factor(summary_view_all.SpCorr$AnalysisType)
+# summary_view_all.SpCorr <- subset(summary_view_all, metric == "SpCorr")
+summary_view_all$DataType <- factor(summary_view_all$DataType)
+summary_view_all$CancerType <- factor(summary_view_all$CancerType)
+summary_view_all$cv <- factor(summary_view_all$cv, levels = c("min.mse", "1se.mse"))
+summary_view_all$metric <- factor(summary_view_all$metric, levels = c("MSE", "PeCorr", "SpCorr", "CI"))
+summary_view_all$AnalysisType <- factor(summary_view_all$AnalysisType)
 
-summary_view_all.SpCorr$Analysis_Alg <- paste0(summary_view_all.SpCorr$algorithm,"_",
-                                                    summary_view_all.SpCorr$AnalysisType)
-
-summary_view_all.SpCorr$Analysis_Alg <- factor(summary_view_all.SpCorr$Analysis_Alg)
+# summary_view_all.SpCorr$Analysis_Alg <- paste0(summary_view_all.SpCorr$algorithm,"_",
+#                                                summary_view_all.SpCorr$AnalysisType)
+# 
+# summary_view_all.SpCorr$Analysis_Alg <- factor(summary_view_all.SpCorr$Analysis_Alg)
 
 # Colors for visualization
-colors.cancer_types <- toupper(c("#d29d00","#9445cc","#8cce2f","#ef49c3","#1b8c00","#998fff",
-                                 "#e78400","#0063a4","#fc4745","#00c98b","#b6006b","#006c43",
-                                 "#ff8376","#604588", "#dcc666","#912f47","#7c5b00","#90350e"))
+# colors.cancer_types <- toupper(c("#d29d00","#9445cc","#8cce2f","#ef49c3","#1b8c00","#998fff",
+#                                  "#e78400","#0063a4","#fc4745","#00c98b","#b6006b","#006c43",
+#                                  "#ff8376","#604588", "#dcc666","#912f47","#7c5b00","#90350e"))
+colors.cancer_types <- toupper("#dcc666")
+names(colors.cancer_types) <- levels(summary_view_all$CancerType)
 
-names(colors.cancer_types) <- levels(summary_view_all.SpCorr$CancerType)
-
-colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c","#c95574","#747fca","#ca743e"))
-names(colors.DataType) <- levels(summary_view_all.SpCorr$DataType)
+colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c")) #,"#c95574","#747fca","#ca743e"))
+names(colors.DataType) <- levels(summary_view_all$DataType)
 
 colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0",
                           "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
 # names(colors.tasks) <- levels(summary_view_all.SpCorr$task)
 
-colors.algorithm <- toupper(c("#ff7433","#853760"))
-names(colors.algorithm) <- levels(summary_view_all.SpCorr$algorithm)
+# colors.algorithm <- toupper(c("#ff7433","#853760"))
+# names(colors.algorithm) <- levels(summary_view_all.SpCorr$algorithm)
 
-alpha.algorithm <- c(1,0.2)
-names(alpha.algorithm) <- levels(summary_view_all.SpCorr$algorithm)
-
-alpha.analysis_alg <- c(1,0.4,0.05)
-names(alpha.analysis_alg) <- levels(summary_view_all.SpCorr$Analysis_Alg)
+# alpha.algorithm <- c(1,0.2)
+# names(alpha.algorithm) <- levels(summary_view_all.SpCorr$algorithm)
+# 
+# alpha.analysis_alg <- c(1,0.4,0.05)
+# names(alpha.analysis_alg) <- levels(summary_view_all.SpCorr$Analysis_Alg)
 
 ## ------------------------------------------------------------------------ ##
 # 1. PanCancer comparison:
@@ -218,41 +212,44 @@ names(alpha.analysis_alg) <- levels(summary_view_all.SpCorr$Analysis_Alg)
 # Per CancerType
 # sapply(names(colors.tasks), function(ImmuneResponse){
 #   
-summary_view_all.SpCorr.task <- subset(summary_view_all.SpCorr, task %in% c("consensus_all", "consensus_top", "common_all", "common_top"))
-  
-ggplot(summary_view_all.SpCorr.task, aes(x = DataType, y = perf_min, fill = DataType,
-                                           colour = DataType, alpha = task)) +
+# summary_view_all.SpCorr.task <- subset(summary_view_all.SpCorr, task %in% c("consensus_all", "consensus_top", "common_all", "common_top"))
+summary_view_all.SpCorr_1se.mse <- subset(summary_view_all, metric == "SpCorr" & cv == "1se.mse")
+summary_view_all.SpCorr_1se.mse$task <- factor(summary_view_all.SpCorr_1se.mse$task)
+
+ggplot(summary_view_all.SpCorr_1se.mse, aes(x = DataType, y = perf_min, fill = task,
+                                            colour = task)) +
     geom_boxplot() +
-    scale_fill_manual(name = "Mechanistic signatures", 
-                      labels = names(colors.DataType),
-                      values = colors.DataType, guide=FALSE) +
-    scale_color_manual(name = "Mechanistic signatures",
-                       labels = names(colors.DataType),
-                       values = colors.DataType, guide=FALSE) +
-    scale_alpha_manual(name = "Task",
-                     labels = c("consensus_all", "consensus_top", "common_all", "common_top"),
-                     values = c(0.95,0.75,0.5,0.25)) +
-    theme_minimal() +
+    scale_fill_manual(name = "Task",
+                      labels = levels(summary_view_all.SpCorr_1se.mse$task),
+                      values = colors.tasks[1:8]) +
+    scale_color_manual(name = "Task",
+                       labels = levels(summary_view_all.SpCorr_1se.mse$task),
+                       values = colors.tasks[1:8]) +
+    # scale_alpha_manual(name = "cv-Task",
+    #                  labels = levels(summary_view_all.SpCorr_1se.mse$task),
+    #                  values = c(0.9,0.5)) +
+    theme_bw() +
     ylim(c(0.5,1)) +
-    #coord_fixed(ratio = 4) +
-    #facet_grid(algorithm ~ .) +
-    scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
-                                "LRpairs"= "L-R pairs",
-                                "pathways"="Pathways",
-                                "pathways_immunecells"="Pathways \n + \n Immunecells",
-                                "TFs" = "TFs",
-                                "transcript" = "Transcriptomics")) +
+    coord_fixed(ratio = 2.2) +
+    # facet_grid(.~ cv) +
+    # scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
+    #                             "LRpairs"= "L-R pairs",
+    #                             "pathways"="Pathways",
+    #                             "pathways_immunecells"="Pathways \n + \n Immunecells",
+    #                             "TFs" = "TFs",
+    #                             "transcript" = "Transcriptomics")) +
     theme(axis.text.x = element_text(size=14,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
           axis.text.y = element_text(size=14,face="bold"), axis.ticks.x = element_line(size=1), axis.ticks.y = element_line(size=1),
           axis.title.y = element_text(size=14,face="bold",vjust = 0.9), strip.background = element_blank(), 
           legend.position = "right") +
           # legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
           # panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) +
-    labs(y = "Spearman Correlation")    
-    # ggtitle(paste0("PanCancer comparison of mechanistic signatures performance using ", ImmuneResponse, "(all tasks)"))
+    labs(y = "Spearman Correlation") + 
+    ggtitle(paste0("Model with min.mse + 1SE"))
   
-  ggsave(paste0("../figures/Federica_presentation_colab/PROGENy_updated/EN_mechanistic_signatures_perfomance_consensus_common_across_all_and_top_tasks.pdf"),
-         width = 12, height = 12)
+  ggsave(paste0("../figures/BIM_cluster_presentation/EN_mechanistic_signatures_mgaussian_performance_SpCorr_1SE_MSE_SKCM.pdf"), width = 12, height = 12)
+  # ggsave(paste0("../figures/Federica_presentation_colab/PROGENy_updated/EN_mechanistic_signatures_perfomance_consensus_common_across_all_and_top_tasks.pdf"),
+  #        width = 12, height = 12)
   
 #})
 

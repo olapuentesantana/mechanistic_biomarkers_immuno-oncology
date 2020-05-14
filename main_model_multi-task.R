@@ -35,7 +35,7 @@ views <- c(pathways = 'gaussian', #1
            CYTOKINEpairs = 'gaussian')  #8) 
 
 # ****************
-view_combinations <- list(views[1], views[c(1,3)])
+view_combinations <- list(views[1], views[3], views[c(1,3)], views[4], views[7], views[8], views[5])
 
 # ****************
 # data

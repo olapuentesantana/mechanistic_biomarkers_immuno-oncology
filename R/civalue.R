@@ -1,32 +1,37 @@
 civalue<-function(y,yhat) {
   
-  Ly<-length(y)
+  y <- as.matrix(y) ; yhat <- as.matrix(yhat)
+  ifelse(dim(y)[2] > 1, Ly<-nrow(y), Ly<-length(y))
   ci<-rep(0,Ly)
   
   s<-0 # score sum
   n<-0 # pairs of scores
   
-  for (i in 1:(Ly-1)) {
+  ci <- sapply(1:ncol(y), function(X){
     
-    for (j in (i+1):Ly) {
+    for (i in 1:(Ly-1)) {
       
-      if (y[i]>y[j]) {
+      for (j in (i+1):Ly) {
         
-        s<-s+(yhat[i] > yhat[j])+0.5*(yhat[i]==yhat[j]);
-        n<-n + 1;
-        
-      } else if (y[i]<y[j]) {
-        
-        s<-s+(yhat[i]<yhat[j])+0.5*(yhat[i]==yhat[j]);
-        n<-n+1;
-        
+          if (y[i,X]>y[j,X]) {
+            
+            s<-s+(yhat[i,X]>yhat[j,X])+0.5*(yhat[i,X]==yhat[j,X]);
+            n<-n+1;
+            
+          } else if (y[i,X]<y[j,X]) {
+            
+            s<-s+(yhat[i,X]<yhat[j,X])+0.5*(yhat[i,X]==yhat[j,X]);
+            n<-n+1;
+            
+          }
+    
       }
       
     }
-    
-  }
-  
-  ci<-s/n
+    ci<-s/n
+    return(ci)
+  })
+  names(ci) <- colnames(y)
   return(ci)
   
 }
