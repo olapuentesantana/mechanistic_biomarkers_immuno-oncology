@@ -68,8 +68,22 @@ setdiff(colnames(DataViews.no_filter$CYTOKINEpairs), CYTOKINE.pairs_subnetwork)
 
 
 #############################################################################################################
+# ************
+# Input data:
+# Average CAGE expression data for human protein-coding genes in the 144 human primary cells
+Expr.Lig_Rec <- read.delim(file = "Ligand_Receptors_Rdata/ExpressionLigRec.txt")
+# Average CAGE expression data for all ligands and receptors in the 144 human primary cells
+Expr_genes <- read.delim(file = "Ligand_Receptors_Rdata/ExpressionGenes.txt")
+# Curated ligand-receptor pairs in Ramilowski database (as of April 2015)
+Pairs.L.R <- read.delim(file = "Ligand_Receptors_Rdata/PairsLigRec.txt")
+
+# load("data/Ligand_Receptors_Rdata/LR.pairs.Ramilowski.RData")
+
+# ************
+# Processing
+
 # Filter by cell types commonly present in the TME (24 cell types) [source: Maisa's report]
-TME.cell_types <- c("Mature Adipocyte","Adipocyte Omental","CD19..B.cells", "CD4..T.cells",
+TME.cell_types <- c("Mature.Adipocyte","Adipocyte.Omental","CD19..B.cells", "CD4..T.cells",
                     "CD4.CD25.CD45RA..naive.regulatory.T.cells","CD4.CD25.CD45RA..memory.regulatory.T.cells",       
                     "CD4.CD25.CD45RA..naive.conventional.T.cells", "CD4.CD25.CD45RA..memory.conventional.T.cells",
                     "CD8..T.cells", "Dendritic.Monocyte.Immature.derived", "Dendritic.Plasmacytoid", 
@@ -77,17 +91,67 @@ TME.cell_types <- c("Mature Adipocyte","Adipocyte Omental","CD19..B.cells", "CD4
                     "Macrophage.Monocyte.derived", "Mast.cells", "Mast.cells.stimulated","CD14..Monocytes",
                     "CD14.CD16..Monocytes", "CD14.CD16..Monocytes.1", "CD14.CD16..Monocytes.2", "NK.cells", "Neutrophils")
 
-# Average CAGE expression data for human protein-coding genes in the 144 human primary cells
-Expr.Lig_Rec <- read.csv2(file = "data/Ligand_Receptors_Rdata/ExpressionLigRec.csv")
-# Average CAGE expression data for all ligands and receptors in the 144 human primary cells
-Expr_genes <- read.csv2(file = "data/Ligand_Receptors_Rdata/ExpressionGenes.csv")
-# Curated ligand-receptor pairs in Ramilowski database (as of April 2015)
-Pairs.L.R <- read.csv2(file = "data/Ligand_Receptors_Rdata/PairsLigRec.csv")
+Expr.Lig_Rec <- Expr.Lig_Rec[,c(1,2,3,4,match(TME.cell_types, colnames(Expr.Lig_Rec)))]
+# We selected only literature supported evidence pairs to build this table
+Pairs.L.R <- subset(Pairs.L.R, Pair.Evidence == "literature supported")
+Expr.Lig_Rec <- subset(Expr.Lig_Rec, Pair.Evidence == "literature supported")
 
-load("data/Ligand_Receptors_Rdata/LR.pairs.Ramilowski.RData")
+# Exclude those ligands and receptors that were expressed by a cell type 
+# but not paired to another ligand or receptor in the cell network.
+Expr.L <- subset(Expr.Lig_Rec, Type == "ligand")
+Expr.R <- subset(Expr.Lig_Rec, Type == "receptor")
+
+# Built intermediate table: each sender cell type and its ligand,
+# each receiver cell type and its receptor, both with their corresponding expression.
+rownames(Expr.L) <- Expr.L$ApprovedSymbol
+rownames(Expr.R) <- Expr.R$ApprovedSymbol
+Expr.L <- Expr.L[,-c(1,2,3,4)]
+Expr.R <- Expr.R[,-c(1,2,3,4)]
+
+Expr.L <- Expr.L[!is.na(rowSums(Expr.L)),]
+Expr.R <- Expr.R[!is.na(rowSums(Expr.R)),]
+
+keep_pairs <- intersect(which(Pairs.L.R$Ligand.ApprovedSymbol %in% rownames(Expr.L)), which(Pairs.L.R$Receptor.ApprovedSymbol %in% rownames(Expr.R)))
 
 
+Receptors_for_Ligands <- Pairs.L.R[match(keep_ligands, Pairs.L.R$Ligand.ApprovedSymbol), c(1,2,4)]
+Ligands_for_Receptors <- Pairs.L.R[match(keep_receptors, Pairs.L.R$Receptor.ApprovedSymbol), c(1,2,4)]
 
+LR.pairs <- Pairs.L.R[keep_pairs, c(1,2,4)]
+LR.pairs <- LR.pairs[!duplicated(LR.pairs$Pair.Name),]
+
+Intermediate.table <- do.call(rbind, lapply(colnames(Expr.L), function(cell_type){
+  
+  Intermediate.table <- do.call(rbind, lapply(1:nrow(LR.pairs), function(L_pos){
+  
+           L <- LR.pairs$Ligand.ApprovedSymbol[L_pos]
+           R <- LR.pairs$Receptor.ApprovedSymbol[L_pos]
+
+          tmp.table <- data.frame(Sender = cell_type, 
+                                  Ligand = L, 
+                                  Expr_Ligand = as.numeric(Expr.L[L,cell_type]),
+                                  Receiver = colnames(Expr.R), 
+                                  Receptor = R,
+                                  Expr_Receptor= as.numeric(Expr.R[R,]))
+          
+    return(tmp.table)
+  }))
+  return(Intermediate.table)
+}))
+
+
+# The ligands and receptors were only taken into account if their
+# expression was >= 10 TPM in the given cell
+anyNA(Intermediate.table) # FALSE
+Intermediate.table <- Intermediate.table[which(Intermediate.table$Expr_Ligand >= 10 & Intermediate.table$Expr_Receptor >= 10),]
+
+# Expressed molecules per cell type: Pairs that ocurred most often (576 times) agreed with Maisa's report
+# tmp <- subset(Intermediate.table, Ligand == "VIM" & Receptor == "CD44")
+unique(tmp$Ligand)
+unique(tmp$Receptor)
+
+# Total number of unique pairs
+list_LR.pairs <- unique(paste0(Intermediate.table$Ligand,"_",Intermediate.table$Receptor))
 
 
 
