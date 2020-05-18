@@ -9,8 +9,6 @@ data/model_human_full.rda
 data/LR.pairs.Ramilowski.RData
 data/Federica_presentation_colab
 data/Ligand_Receptors_Rdata/
-
-data/CYTOKINE_pairs_subnetwork.RData
 R/Lung_different_biopsies.zip
 R/Lung_different_biopsies
 output/
