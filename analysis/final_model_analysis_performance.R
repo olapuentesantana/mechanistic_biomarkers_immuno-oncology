@@ -127,8 +127,8 @@ analysis <- c("all")
                                    cv = cv,
                                    iteration = iteration,
                                    metric = measure,
-                                   task = c(names(tmp_cv),"common"),
-                                   perf_min = c(tmp_cv, mean(tmp_cv)))
+                                   task = c(names(tmp_cv),"common_median"),
+                                   perf_min = c(tmp_cv, median(tmp_cv)))
                 
                   # }
   
@@ -213,39 +213,39 @@ colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf
 # sapply(names(colors.tasks), function(ImmuneResponse){
 #   
 # summary_view_all.SpCorr.task <- subset(summary_view_all.SpCorr, task %in% c("consensus_all", "consensus_top", "common_all", "common_top"))
-summary_view_all.SpCorr_1se.mse <- subset(summary_view_all, metric == "SpCorr" & cv == "1se.mse")
+summary_view_all.SpCorr_1se.mse <- subset(summary_view_all, metric == "SpCorr" & cv == "1se.mse" & task == "common_median")
 summary_view_all.SpCorr_1se.mse$task <- factor(summary_view_all.SpCorr_1se.mse$task)
 
-ggplot(summary_view_all.SpCorr_1se.mse, aes(x = DataType, y = perf_min, fill = task,
-                                            colour = task)) +
+ggplot(summary_view_all.SpCorr_1se.mse, aes(x = DataType, y = perf_min, fill = DataType,
+                                            colour = DataType, alpha = task)) +
     geom_boxplot() +
-    scale_fill_manual(name = "Task",
-                      labels = levels(summary_view_all.SpCorr_1se.mse$task),
-                      values = colors.tasks[1:8]) +
-    scale_color_manual(name = "Task",
-                       labels = levels(summary_view_all.SpCorr_1se.mse$task),
-                       values = colors.tasks[1:8]) +
-    # scale_alpha_manual(name = "cv-Task",
-    #                  labels = levels(summary_view_all.SpCorr_1se.mse$task),
-    #                  values = c(0.9,0.5)) +
-    theme_bw() +
+    scale_fill_manual(name = "Mechanistic signature",
+                      labels = levels(summary_view_all.SpCorr_1se.mse$DataType),
+                      values = colors.DataType) +
+    scale_color_manual(name = "Mechanistic signature",
+                       labels = levels(summary_view_all.SpCorr_1se.mse$DataType),
+                       values = colors.DataType) +
+    scale_alpha_manual(name = "cv-Task",
+                     labels = levels(summary_view_all.SpCorr_1se.mse$task),
+                     values = c(0.93,0.4,0.4,0.4,0.4,0.4,0.4,0.4), guide = F) +
+    theme_minimal() +
     ylim(c(0.5,1)) +
     coord_fixed(ratio = 2.2) +
     # facet_grid(.~ cv) +
-    # scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
-    #                             "LRpairs"= "L-R pairs",
-    #                             "pathways"="Pathways",
-    #                             "pathways_immunecells"="Pathways \n + \n Immunecells",
-    #                             "TFs" = "TFs",
-    #                             "transcript" = "Transcriptomics")) +
-    theme(axis.text.x = element_text(size=14,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
-          axis.text.y = element_text(size=14,face="bold"), axis.ticks.x = element_line(size=1), axis.ticks.y = element_line(size=1),
+    scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
+                                # "LRpairs"= "L-R pairs",
+                                "pathways"="Pathways",
+                                "pathways_immunecells"="Pathways \n + \n Immunecells"))+
+                                # "TFs" = "TFs",
+                                # "transcript" = "Transcriptomics")) +
+    theme(axis.text.x = element_text(size=14,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_text(size=14,face="bold"),
+          axis.text.y = element_text(size=14,face="bold"), axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
           axis.title.y = element_text(size=14,face="bold",vjust = 0.9), strip.background = element_blank(), 
-          legend.position = "right") +
+          legend.position = "none") +
           # legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
           # panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) +
-    labs(y = "Spearman Correlation") + 
-    ggtitle(paste0("Model with min.mse + 1SE"))
+    labs(y = "Spearman Correlation", x = "Mechanistic Signatures") + 
+    ggtitle(paste0("Common-median performance during cross-validation with 100 iterations (min.mse + 1SE model)"))
   
   ggsave(paste0("../figures/BIM_cluster_presentation/EN_mechanistic_signatures_mgaussian_performance_SpCorr_1SE_MSE_SKCM.pdf"), width = 12, height = 12)
   # ggsave(paste0("../figures/Federica_presentation_colab/PROGENy_updated/EN_mechanistic_signatures_perfomance_consensus_common_across_all_and_top_tasks.pdf"),

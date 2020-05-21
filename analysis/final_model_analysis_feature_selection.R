@@ -184,9 +184,9 @@ colors.cancer_types <- toupper(c("#d29d00","#9445cc","#8cce2f","#ef49c3","#1b8c0
 colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c"))#,"#c95574","#747fca"))#,"#ca743e"))
 names(colors.DataType) <- levels(summary_view_features$DataType)
 
-colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0",
-                          "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
-# names(colors.tasks) <- levels(summary_view_features$task)
+colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0"))
+                          #"#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
+names(colors.tasks) <- levels(summary_view_features$task)
 
 # colors.algorithm <- toupper(c("#ff7433","#853760"))
 # names(colors.algorithm) <- levels(summary_view_features$algorithm)
@@ -204,18 +204,19 @@ colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf
 
 # Sort features per median value and all tasks (~ feature + cv_model + dataType + CancerType + algorithm)
 ## Get median features
-median.features <- aggregate(estimate ~ feature + cv_model + DataType + CancerType , 
-                                          FUN = "median", na.rm = TRUE, data = summary_view_features)
+median.features <- aggregate(estimate ~ feature + DataType + CancerType, 
+                                          FUN = "median", na.rm = T, data = summary_view_features)
 ## Sort features by median value:
 median.features.sort <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
 median.features.sort$feature <- as.character(median.features.sort$feature)
 
 ## Restructuring data.frame
 # estimates
-summary_view_features.sort <- summary_view_features[order(match(summary_view_features$feature, 
-                                                                         median.features.sort$feature)),]
-summary_view_features.sort$feature <- factor(summary_view_features.sort$feature, 
-                                                  levels =  unique(median.features.sort$feature))
+# summary_view_features.1se.mse <- subset(summary_view_features, cv_model = "1se.mse")
+# summary_view_features.sort <- summary_view_features.1se.mse[order(match(summary_view_features.1se.mse$feature, 
+#                                                                          median.features.sort$feature)),]
+# summary_view_features.sort$feature <- factor(summary_view_features.sort$feature, 
+#                                                   levels =  unique(median.features.sort$feature))
 
 ## ------------------------------------------------------------------------ ##
 # 3. Comparison of running L21 with 8 or 13 tasks:
@@ -257,7 +258,7 @@ input <- "pathways_immunecells"
               legend.position = c(0.75,0.85), legend.direction = "horizontal",
               legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
               panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) +
-        geom_hline(yintercept = 0, linetype = 2) +
+        labs(y = "estimated coefficient") + 
         ggtitle(paste0(input, ": EN feature selection for ", output))
 
     ggsave(paste0("../Figures/BIM_cluster_presentation/",), width = 12, height = 12)
@@ -274,38 +275,47 @@ sapply(names(colors.cancer_types), function(Cancer){
   sapply(names(colors.DataType), function(input){
     
     # Per task
-      summary_view_features.mech_sig.cancer <- subset(summary_view_features_tmp.order, DataType == input &
-                                                      CancerType == Cancer)
-  
+      summary_view_features.mech_sig.cancer <- subset(summary_view_features, DataType == "pathways_immunecells" &
+                                                      CancerType == "SKCM(n=467)" & cv_model == "1se.mse" & task == "CYT")
+      median.features <- aggregate(estimate ~ feature, FUN = "median", na.rm = T, data = summary_view_features.mech_sig.cancer)
+      ## Sort features by median value:
+      median.features.sort <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
+      median.features.sort$feature <- as.character(median.features.sort$feature)
+      features_order <- median.features.sort$feature
+      summary_view_features.mech_sig.cancer$feature <- factor(summary_view_features.mech_sig.cancer$feature, levels = features_order)
       ggplot(summary_view_features.mech_sig.cancer, aes(x = feature, y = estimate, fill = task,
-                                               colour = task, alpha = Analysis_Alg)) +
+                                               colour = task, alpha = task)) +
         geom_boxplot(outlier.shape = NA) +
         scale_fill_manual(name = "Task", 
-                          labels = names(colors.tasks),
-                          values = colors.tasks) +
+                          labels = "CYT",
+                          values = as.character(colors.tasks[3])) +
         scale_color_manual(name = "Task", 
-                           labels = names(colors.tasks),
-                           values = colors.tasks) + 
-        scale_alpha_manual(name = "Analysis", 
-                           labels = names(alpha.analysis_alg),
-                           values = alpha.analysis_alg)  +
+                           labels = "CYT",
+                           values = as.character(colors.tasks[3])) + 
+        scale_alpha_manual(name = "Task",
+                           labels = "CYT",
+                           values = 0.6, guide = F)  +
         theme_minimal() +
-        #ylim(c(0,1)) +
-        coord_fixed(ratio = 4) +
-        scale_x_discrete(labels = function(x) substr(x,1,13)) +
-        theme(axis.text.x = element_text(size=10,face="bold", angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
-              axis.text.y = element_text(size=10,face="bold"), axis.ticks.x = element_line(size = 1), axis.ticks.y = element_line(size = 1),
-              axis.title.y = element_text(size=10,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
-              legend.position = "bottom", legend.direction = "horizontal",
-              legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
-              panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) + 
-        geom_hline(yintercept = 0, linetype = 2) +
-        ggtitle(paste0(input," FE - all vs all_top tasks for ", Cancer))
+        # ylim(c(-0.1,0.9)) +
+        # coord_fixed(ratio = 2) +
+        scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
+                                    "Macrophages_M2"= "M2",
+                                    "B_cells" = "B cells",
+                                    "T_cells_regulatory_Tregs" = "Tregs",
+                                    "Macrophages_M1"= "M1",
+                                    "T_cells_CD4" = "CD4 T cells",
+                                    "NK_cells" = "NK cells",
+                                    "Dendritic_cells" = "DC cells")) +
+        theme(axis.text.x = element_text(size=13, angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_text(size=13,face="bold",vjust = 0.9),
+              axis.text.y = element_text(size=13,face=), axis.ticks.x = element_blank(), axis.ticks.y = element_line(size = 1),
+              axis.title.y = element_text(size=13,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
+              legend.position = c(0.9,0.9), legend.direction = "horizontal",
+              legend.text=element_text(size=13), legend.title = element_text(size = 12, face="bold", vjust = 0.5),
+              panel.border = element_blank(), panel.background = element_blank(), axis.line = element_blank()) + 
+        labs(y = "estimated coefficient", x = "features") + 
+        ggtitle(paste0("Pathways + ImmuneCells cross-validation coefficients (min MSE + 1SE model)"))
     
-    ggsave(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/figures/new_v2/", 
-                sapply(strsplit(Cancer, split = "(", fixed = T), function(X) {return(X[1])}), 
-                "/Feature_selection/", sapply(strsplit(Cancer, split = "(", fixed = T), function(X) {return(X[1])}),
-                "_EN_vs_L21_with_", input,"_all_vs_top_tasks.pdf"), width = 12, height = 12)
+    ggsave(paste0("../Figures/BIM_cluster_presentation/Boxplot_displaying_coef_pathways_immunecells_1se_mse_model_CYT.pdf"), width = 12, height = 12)
   
   })
 })

@@ -57,7 +57,7 @@ views <- c(pathways = 'gaussian', #1
            CYTOKINEpairs = 'gaussian')  #8) 
 
 # all
-view_combinations <- list(views[c(1,3)], views[1], views[3])
+view_combinations <- list(views[c(1,3)])
 
 # ****************
 # Initialize variables
@@ -440,6 +440,8 @@ names(alpha.analysis_alg) <- levels(AUC.mean.sd$Analysis_alg)
 CancerType <- "SKCM"
 tmp.barplot <- subset(AUC.mean.sd, Cancer == CancerType)
 tmp.barplot$Task <- factor(tmp.barplot$Task)
+tmp.barplot$cv_model <- factor(tmp.barplot$cv_model, levels = c("min.mse", "1se.mse"))
+
 #
 # CancerType <- "STAD"
 # AlgorithmType <- "L21"
@@ -457,7 +459,7 @@ ggplot2::ggplot(tmp.barplot, aes(x=View, y=round(AUC.median,2), fill=Task,
                      labels = levels(tmp.barplot$Task),
                      values =  c("lightgrey", "darkgrey", as.vector(colors.tasks))) + 
   ggplot2::scale_alpha_manual(name = "cv_model",
-                     labels = cv_model,
+                     labels = levels(tmp.barplot$cv_model),
                      values = c(1,0.5))  +
   ggplot2::theme_bw() +
   ggplot2::facet_grid(Dataset ~ .) +
@@ -493,17 +495,18 @@ library(ROCR)
 
 source("../R/computation.gold.standards.R")
 list.gold.standards <- c("CYT", "PD1", "PDL1","CTLA4")
-gold.standards <- computation.gold.standards(RNA.tpm = 2^All.DataViews.test$Riaz$transcript -1, list_gold_standards = list.gold.standards)
+gold.standards <- computation.gold.standards(RNA.tpm = 2^All.DataViews.test$comb.Gide_Auslander$transcript -1, list_gold_standards = list.gold.standards)
 
-df <- predictions_immune_response[["SKCM"]][["Riaz"]][["all"]][["pathways"]][["Multi_Task_EN"]]$lab[[1]][[1]]
+df <- predictions_immune_response[["SKCM"]][["comb.Gide_Auslander"]][["all"]][["pathways"]][["Multi_Task_EN"]]$lab[[1]][[1]]
 gold.standards.curve <- list()
 gold.standards.curve<- do.call(c,lapply(list.gold.standards, function(X){
 
   pred <- ROCR::prediction(gold.standards[[X]],df[,1], label.ordering = c("NR", "R"))
   perf <- ROCR::performance(pred,"tpr","fpr")
-  # AUC <- unlist(ROCR::performance(pred, "auc")@y.values)
+  AUC <- unlist(ROCR::performance(pred, "auc")@y.values)
   
-  gold.standards.curve[[X]] <- perf
+  gold.standards.curve[[X]]$Curve <- perf
+  gold.standards.curve[[X]]$Barplot <- AUC
   return(gold.standards.curve)
 }))
 
@@ -521,49 +524,49 @@ gold.standards.curve<- do.call(c,lapply(list.gold.standards, function(X){
 #           cat("Algorithm:",algorithm, "\n")
 #           lapply(c(filter.analysis.task[[anal]],"common_all","common_top"), function(task){
             
-            # pathways_immunecells - common top
-            dataset = "Riaz"
-            pdf("../figures/BIM_cluster_presentation/ROC_curves_predictions_on_SKCM_Riaz_dataset.pdf", width = 12, height = 12)
+            # pathways_immunecells - common 
+            dataset = "comb.Gide_Auslander"
+            pdf("../figures/BIM_cluster_presentation/ROC_curves_predictions_on_SKCM_comb_Gide_Auslander_dataset.pdf", width = 12, height = 12)
             par(cex.axis=1.4, mar = c(5, 5, 5, 5))
-            ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["pathways_immunecells"]][[algorithm]][["common_mean"]]$Curve[[1]],
-                       avg = "threshold", col = colors.DataType[[1]], lwd = 5, type = "s", cex.lab=1.4, ylab="True Positive Rate",
+            ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["pathways_immunecells"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+                       avg = "threshold", col = "coral", lwd = 8, type = "S", cex.lab=1.4, ylab="True Positive Rate",
                        xlab="False Positive Rate")
             
-            # immunecells - common top
-            ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["immunecells"]][[algorithm]][["common_mean"]]$Curve[[1]],
-                       avg = "threshold", col = colors.DataType[[2]], lwd = 5, type = "s", add = TRUE)
-            # pathways - common top
-            ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["pathways"]][[algorithm]][["common_mean"]]$Curve[[1]],
-                       avg = "threshold", col = colors.DataType[[3]], lwd = 5, type = "s", add = TRUE)
+            # # immunecells - common 
+            # ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["immunecells"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+            #            avg = "threshold", col = colors.DataType[[2]], lwd = 5, type = "S", add = TRUE)
+            # # pathways - common 
+            # ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["pathways"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+            #            avg = "threshold", col = colors.DataType[[3]], lwd = 5, type = "S", add = TRUE)
             
             # # transcript - common top
             # ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["transcript"]][[algorithm]][["common_top"]]$Curve[[1]],
             #            avg = "threshold", col = colors.tasks[[1]], lwd = 5, type = "s", add = TRUE)
             
             # gold standard - CYT
-            ROCR::plot(gold.standards.curve$CYT, col = "lightgrey", lwd = 2, type = "s", lty = 1, add = TRUE)
+            ROCR::plot(gold.standards.curve$CYT$Curve, col = "darkgrey", lwd = 2, type = "S", lty = 1, add = TRUE)
             
             # # gold standard - PD1
-            ROCR::plot(gold.standards.curve$PD1,col = "red", lwd = 2, type = "s", lty = 1, add = TRUE)
+            ROCR::plot(gold.standards.curve$PD1$Curve,col = "darkred", lwd = 2, type = "S", lty = 1, add = TRUE)
             
-            # gold standard - PDL1
-            ROCR::plot(gold.standards.curve$PDL1,col = "darkgrey", lwd = 2, type = "s", lty = 1, add = TRUE)
+            # # gold standard - PDL1
+            # ROCR::plot(gold.standards.curve$PDL1$Curve,col = "chocolate1", lwd = 2, type = "S", lty = 1, add = TRUE)
             
             # # gold standard - CTLA4
-            ROCR::plot(gold.standards.curve$CTLA4,col = "black", lwd = 2, type = "s", lty = 1, add = TRUE)
+            ROCR::plot(gold.standards.curve$CTLA4$Curve,col = "darkgreen", lwd = 2, type = "S", lty = 1, add = TRUE)
             
-            abline(a=0, b=1, lty = 3, lwd = 2, col = "aliceblue")
+            abline(a=0, b=1, lty = 3, lwd = 1, col = "antiquewhite4")
             
             
-            title(paste0("Dataset: ", dataset) )
+            title(paste0("Dataset: ", dataset, "(PD-1, PD-1 & CTLA-4)") )
 
             # AUC_median <- round(subset(AUC.mean.sd, Cancer == Cancer & Dataset == dataset & View == view &
             #                              Analysis == anal & Model == algorithm & Task == task, AUC.median),2)
             
-            legend(x = 0.8, y = 0.4, legend = c("Pathways \n       + \nImmuneCells","ImmuneCells", "Pathways", "CYT", "PD1","PDL1", "CTLA4"), 
-                   col = c(colors.DataType[[1]], colors.DataType[[2]], colors.DataType[[3]], 
-                           "lightgrey", "red", "darkgrey", "black"),
-                   lty = c(1,1,1,1,1,1,1), lwd = c(5,5,5,2,2,2,2), cex = 1,text.width = 0.1, bty = "n")
+            legend(x = 0.6, y = 0.13, legend = c("Pathways + ImmuneCells", "CYT", "PD1", "CTLA4"), 
+                   col = c("coral", 
+                           "lightgrey", "darkgreen", "darkgoldenrod1"),
+                   lty = c(1,1,1,1), lwd = c(8,2,2,2), cex = 1.5, text.width = 0.1, bty = "n")
             
 
             dev.off()
