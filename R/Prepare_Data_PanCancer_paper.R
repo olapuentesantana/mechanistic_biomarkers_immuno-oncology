@@ -48,7 +48,7 @@ library(gdata)
 #library(progeny)
 # BiocManager::install("dorothea")
 #library(dorothea)
-
+library(Seurat)
 
 # *****************
 # functions
@@ -284,8 +284,8 @@ sapply(PanCancer.names, function(Cancer){
   ## TF activity computation
   
   # Computation of LR pairs activity (input matrix [genes, samples], ouput matrix [sample, TFs])
-  LRpairs.no_filter <- compute.LR.pairs(RNA.tpm = tpm.no_filter, remove.genes.ICB_proxies=TRUE)
-  LRpairs.filter_prot <- compute.LR.pairs(RNA.tpm = tpm.filter_prot, remove.genes.ICB_proxies=TRUE)
+  LRpairs.no_filter <- compute.LR.pairs(RNA.tpm = tpm.no_filter, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
+  LRpairs.filter_prot <- compute.LR.pairs(RNA.tpm = tpm.filter_prot, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
   
   # Insert into DataViews
   DataViews.no_filter$LRpairs <- as.data.frame(LRpairs.no_filter)
@@ -333,8 +333,8 @@ sapply(PanCancer.names.some, function(Cancer){
   ## Ligand-Receptor pairs computation
   
   # Computation of LR pairs activity (input matrix [genes, samples], ouput matrix [sample, TFs])
-  LRpairs.no_filter <- compute.LR.pairs(RNA.tpm = tpm.no_filter, remove.genes.ICB_proxies=FALSE)
-  LRpairs.filter_prot <- compute.LR.pairs(RNA.tpm = tpm.filter_prot, remove.genes.ICB_proxies=FALSE)
+  LRpairs.no_filter <- compute.LR.pairs(RNA.tpm = tpm.no_filter, remove.genes.ICB_proxies=FALSE, compute.cytokines.pairs=TRUE)
+  LRpairs.filter_prot <- compute.LR.pairs(RNA.tpm = tpm.filter_prot, remove.genes.ICB_proxies=FALSE, compute.cytokines.pairs=TRUE)
   
   # Insert into DataViews
   DataViews.no_filter$LRpairs <- as.data.frame(LRpairs.no_filter)
