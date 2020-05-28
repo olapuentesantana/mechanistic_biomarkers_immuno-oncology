@@ -57,12 +57,12 @@ views <- c(pathways = 'gaussian', #1
            CYTOKINEpairs = 'gaussian')  #8) 
 
 # all
-view_combinations <- list(views[c(1,3)])
+view_combinations <- list(views[c(1)], views[c(3)], views[c(1,3)], views[8], views[5])
 
 # ****************
 # Initialize variables
 input_algorithm <- c("Multi_Task_EN")
-analysis <- c("all")
+analysis <- c("all", "cor")
 
 # ****************
 # Cancer types
@@ -82,22 +82,22 @@ load("../data/Validation/All_Labels_test_pre.RData")
 Datasets.names <- names(All.DataViews.test)
 names(Datasets.names) <- c("SKCM", "SKCM", "SKCM", "STAD", "SKCM", "SKCM", "GBM", "SKCM", "SKCM")
 
-for (Cancer in PanCancer.names){
-
+#for (Cancer in PanCancer.names){
+Cancer = "SKCM"
     cat("Cancer: ", Cancer, "\n")
   
     # Training sets Dataviews data: TCGA 
     # load(paste0("../data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
     # load(paste0("../data/Federica_presentation_colab/DataViews_no_filter_",Cancer,".RData"))
-    load(paste0("../data/PanCancer/", Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))
+    load(paste0("../data/BIM_cluster_presentation/","DataViews_no_filter_", Cancer,".RData"))
     
     # Output model from training
     # file <- dir(paste0("../output/Federica_presentation_colab/"), full.names = T, recursive = F)
-    file <- dir(path = paste0("../output/new_remove_all_genes/",Cancer), pattern = "all_cv_res_", full.names = T, recursive = F)
+    file <- dir(path = paste0("../output/BIM_cluster_presentation"), pattern = "all_cv_res_", full.names = T, recursive = F)
     
     # check data type is available for validation data
     filter.cancer <- which(names(Datasets.names) == Cancer)
-    
+    filter.cancer <- 6 
     predictions.test <- lapply(Datasets.names[filter.cancer], function(dataset){
       
       cat("Validation data set:",dataset, "\n")
@@ -168,7 +168,7 @@ for (Cancer in PanCancer.names){
   names(predictions.test) <- Datasets.names[filter.cancer]
   all.predictions.test[[Cancer]] <- predictions.test
     
-}
+#}
     
 save(all.predictions.test, file = "../output/BIM_cluster_presentation/Labels_predictions_test_pre_treatment_all_datasets.RData")
 
@@ -193,28 +193,29 @@ predictions_immune_response <- all.predictions.test
 # colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c","#c95574","#747fca","#ca743e"))
 # names(colors.DataType) <- names(predictions_immune_response$GBM$Zhao$all)
 
-colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c")) #"#c95574","#747fca","#ca743e"))
-names(colors.DataType) <- names(predictions_immune_response$SKCM$Gide$all)
 
-colors.tasks <- toupper(c("#84be45","#9c5bce","#4c923d","#c24eac","#5dc597","#d34782","#368868"))#"#cf483d","#5ba2d6",
-                          #"#d1a43c","#616cc5","#85873e","#c086c7","#c07643","#ba6272"))
-names(colors.tasks) <- names(predictions_immune_response$SKCM$Gide$all$pathways$Multi_Task_EN$pred)
+colors.DataType <- toupper(c("#c85878","#59aa54","#b65ebd","#999a3e","#6f7dcb"))# "#cc5136", "#45b0a4","#c88645"))
+names(colors.DataType) <- names(predictions_immune_response$SKCM$comb.Gide_Auslander$all)
+
+colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0",
+                          "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
+names(colors.tasks) <- names(predictions_immune_response$SKCM$comb.Gide_Auslander$all$pathways$Multi_Task_EN$pred)
 
 colors.algorithm <- toupper(c("#ff7433"))#,"#853760"))
-names(colors.algorithm) <- names(predictions_immune_response$SKCM$Gide$all$pathways)
+names(colors.algorithm) <- names(predictions_immune_response$SKCM$comb.Gide_Auslander$all$pathways)
 
 alpha.algorithm <- c(1)
-names(alpha.algorithm) <- names(predictions_immune_response$SKCM$Gide$all$pathways)
+names(alpha.algorithm) <- names(predictions_immune_response$SKCM$comb.Gide_Auslander$all$pathways)
 
-alpha.analysis_alg <- c(1)
-names(alpha.analysis_alg) <- names(predictions_immune_response$SKCM$Gide)
+alpha.analysis_alg <- c(0.93,0.4)
+names(alpha.analysis_alg) <- names(predictions_immune_response$SKCM$comb.Gide_Auslander)
 
 # Check labels, we need to be consistent --> label.ordering = c("NR", "R") #
 predictions_immune_response <- lapply(PanCancer.names, function(Cancer){
   
   # check data type is available for validation data
   filter.cancer <- which(names(Datasets.names) == Cancer) 
-  
+  filter.cancer <- 9
   predictions_immune_response[[Cancer]] <- lapply(Datasets.names[filter.cancer], function(dataset){
     predictions_immune_response[[Cancer]][[dataset]] <- lapply(names(alpha.analysis_alg), function(anal){
      predictions_immune_response[[Cancer]][[dataset]][[anal]] <- lapply(names(colors.DataType), function(view){
@@ -264,9 +265,9 @@ names(predictions_immune_response) <- PanCancer.names
 
 ROC_info <- list()
 # filter.analysis.alg <- list(all = c("L21", "Elastic_Net"), all_top = "L21")
-filter.analysis.alg <- list(all = c("Multi_Task_EN"))
-filter.analysis.task <- list(all = names(colors.tasks))#, all_top = names(colors.tasks)[-c(3,4,8,12,13)])
-cv_model <- names(predictions_immune_response$SKCM$Auslander$all$pathways_immunecells$Multi_Task_EN$pred$CYT)
+filter.analysis.alg <- list(all = c("Multi_Task_EN"), cor = c("Multi_Task_EN"))
+filter.analysis.task <- list(all = names(colors.tasks), cor = c("CYT", "IS","RohIS","IS_Davoli","IFny","ExpandedImmune", "T_cell_inflamed")) #, all_top = names(colors.tasks)[-c(3,4,8,12,13)])
+cv_model <- names(predictions_immune_response$SKCM$comb.Gide_Auslander$all$pathways_immunecells$Multi_Task_EN$pred$CYT)
 # Collect predictions #
 ROC_info <-  lapply(PanCancer.names, function(Cancer){
   
@@ -274,7 +275,7 @@ ROC_info <-  lapply(PanCancer.names, function(Cancer){
   
   # check data type is available for validation data
   filter.cancer <- which(names(Datasets.names) == Cancer) 
-  
+  filter.cancer <- 9
   ROC_info <-  lapply(Datasets.names[filter.cancer], function(dataset){
     
     cat("Dataset:",dataset, "\n")
@@ -307,38 +308,78 @@ ROC_info <-  lapply(PanCancer.names, function(Cancer){
              df$pred[["common_median"]][["min.mse"]][[1]] <- matrix(0,nrow(df$pred$CYT[["min.mse"]][[1]]), ncol = 100)
              df$pred[["common_median"]][["1se.mse"]][[1]] <- matrix(0,nrow(df$pred$CYT[["1se.mse"]][[1]]), ncol = 100)
              
-             df$lab[["common_median"]][["min.mse"]][[1]] <- df$lab$CYT[][[1]]
+             df$lab[["common_median"]][["min.mse"]][[1]] <- df$lab$CYT[[1]]
 
-             
-            for (j in 1:100) {
-              for(i in 1:nrow(df$pred$CYT$min.mse[[1]])){
-                
-                df$pred[["common_mean"]]$min.mse[[1]][i,j] <- mean(c(df$pred$CYT$min.mse[[1]][i,j], df$pred$IS$min.mse[[1]][i,j],df$pred$RohIS$min.mse[[1]][i,j], 
-                                                       df$pred$IS_Davoli$min.mse[[1]][i,j], df$pred$IFny$min.mse[[1]][i,j],df$pred$ExpandedImmune$min.mse[[1]][i,j], 
-                                                       df$pred$T_cell_inflamed$min.mse[[1]][i,j]))
-                
-                df$pred[["common_mean"]]$`1se.mse`[[1]][i,j] <- mean(c(df$pred$CYT$`1se.mse`[[1]][i,j], df$pred$IS$`1se.mse`[[1]][i,j],df$pred$RohIS$`1se.mse`[[1]][i,j], 
-                                                                     df$pred$IS_Davoli$`1se.mse`[[1]][i,j], df$pred$IFny$`1se.mse`[[1]][i,j],df$pred$ExpandedImmune$`1se.mse`[[1]][i,j], 
-                                                                     df$pred$T_cell_inflamed$`1se.mse`[[1]][i,j]))
-                
-                df$pred[["common_median"]]$min.mse[[1]][i,j] <- median(c(df$pred$CYT$min.mse[[1]][i,j], df$pred$IS$min.mse[[1]][i,j],df$pred$RohIS$min.mse[[1]][i,j], 
-                                                                       df$pred$IS_Davoli$min.mse[[1]][i,j], df$pred$IFny$min.mse[[1]][i,j],df$pred$ExpandedImmune$min.mse[[1]][i,j], 
-                                                                       df$pred$T_cell_inflamed$min.mse[[1]][i,j]))
-                
-                df$pred[["common_median"]]$`1se.mse`[[1]][i,j] <-  median(c(df$pred$CYT$`1se.mse`[[1]][i,j], df$pred$IS$`1se.mse`[[1]][i,j],df$pred$RohIS$`1se.mse`[[1]][i,j], 
-                                                                          df$pred$IS_Davoli$`1se.mse`[[1]][i,j], df$pred$IFny$`1se.mse`[[1]][i,j],df$pred$ExpandedImmune$`1se.mse`[[1]][i,j], 
-                                                                          df$pred$T_cell_inflamed$`1se.mse`[[1]][i,j]))
-                
-                
+            if (anal == "cor"){
+              for (j in 1:100) {
+                for(i in 1:nrow(df$pred$CYT$min.mse[[1]])){
+                  
+                  df$pred[["common_mean"]]$min.mse[[1]][i,j] <- mean(c(df$pred$CYT$min.mse[[1]][i,j], df$pred$IS$min.mse[[1]][i,j],df$pred$RohIS$min.mse[[1]][i,j], 
+                                                         df$pred$IS_Davoli$min.mse[[1]][i,j], df$pred$IFny$min.mse[[1]][i,j],df$pred$ExpandedImmune$min.mse[[1]][i,j], 
+                                                         df$pred$T_cell_inflamed$min.mse[[1]][i,j]))
+                  
+                  df$pred[["common_mean"]]$`1se.mse`[[1]][i,j] <- mean(c(df$pred$CYT$`1se.mse`[[1]][i,j], df$pred$IS$`1se.mse`[[1]][i,j],df$pred$RohIS$`1se.mse`[[1]][i,j], 
+                                                                       df$pred$IS_Davoli$`1se.mse`[[1]][i,j], df$pred$IFny$`1se.mse`[[1]][i,j],df$pred$ExpandedImmune$`1se.mse`[[1]][i,j], 
+                                                                       df$pred$T_cell_inflamed$`1se.mse`[[1]][i,j]))
+                  
+                  df$pred[["common_median"]]$min.mse[[1]][i,j] <- median(c(df$pred$CYT$min.mse[[1]][i,j], df$pred$IS$min.mse[[1]][i,j],df$pred$RohIS$min.mse[[1]][i,j], 
+                                                                         df$pred$IS_Davoli$min.mse[[1]][i,j], df$pred$IFny$min.mse[[1]][i,j],df$pred$ExpandedImmune$min.mse[[1]][i,j], 
+                                                                         df$pred$T_cell_inflamed$min.mse[[1]][i,j]))
+                  
+                  df$pred[["common_median"]]$`1se.mse`[[1]][i,j] <-  median(c(df$pred$CYT$`1se.mse`[[1]][i,j], df$pred$IS$`1se.mse`[[1]][i,j],df$pred$RohIS$`1se.mse`[[1]][i,j], 
+                                                                            df$pred$IS_Davoli$`1se.mse`[[1]][i,j], df$pred$IFny$`1se.mse`[[1]][i,j],df$pred$ExpandedImmune$`1se.mse`[[1]][i,j], 
+                                                                            df$pred$T_cell_inflamed$`1se.mse`[[1]][i,j]))
+                  
+                  
+                }
               }
-            }
-             
              rownames(df$pred[["common_mean"]]$min.mse[[1]]) <- rownames(df$lab$CYT[[1]])
              rownames(df$pred[["common_mean"]]$`1se.mse`[[1]]) <- rownames(df$lab$CYT[[1]])
              rownames(df$pred[["common_median"]]$min.mse[[1]]) <- rownames(df$lab$CYT[[1]])
              rownames(df$pred[["common_median"]]$`1se.mse`[[1]]) <- rownames(df$lab$CYT[[1]])
              
-             
+            }else{
+              
+              for (j in 1:100) {
+                for(i in 1:nrow(df$pred$CYT$min.mse[[1]])){
+                  
+                  df$pred[["common_mean"]]$min.mse[[1]][i,j] <- mean(c(df$pred$CYT$min.mse[[1]][i,j],df$pred$IS$min.mse[[1]][i,j], df$pred$IPS$min.mse[[1]][i,j],
+                                                                       df$pred$IMPRES$min.mse[[1]][i,j], df$pred$RohIS$min.mse[[1]][i,j], df$pred$chemokine$min.mse[[1]][i,j],
+                                                                       df$pred$IS_Davoli$min.mse[[1]][i,j], df$pred$Proliferation$min.mse[[1]][i,j], df$pred$IFny$min.mse[[1]][i,j],
+                                                                       df$pred$ExpandedImmune$min.mse[[1]][i,j], 
+                                                                       df$pred$T_cell_inflamed$min.mse[[1]][i,j], df$pred$TIDE$min.mse[[1]][i,j], df$pred$MSI$min.mse[[1]][i,j]))
+                  
+                  df$pred[["common_mean"]]$`1se.mse`[[1]][i,j] <- mean(c(df$pred$CYT$`1se.mse`[[1]][i,j],df$pred$IS$`1se.mse`[[1]][i,j], df$pred$IPS$`1se.mse`[[1]][i,j],
+                                                                         df$pred$IMPRES$`1se.mse`[[1]][i,j], df$pred$RohIS$`1se.mse`[[1]][i,j], df$pred$chemokine$`1se.mse`[[1]][i,j],
+                                                                         df$pred$IS_Davoli$`1se.mse`[[1]][i,j], df$pred$Proliferation$`1se.mse`[[1]][i,j], df$pred$IFny$`1se.mse`[[1]][i,j],
+                                                                         df$pred$ExpandedImmune$`1se.mse`[[1]][i,j], 
+                                                                         df$pred$T_cell_inflamed$`1se.mse`[[1]][i,j], df$pred$TIDE$`1se.mse`[[1]][i,j], df$pred$MSI$`1se.mse`[[1]][i,j]))
+                  
+                  df$pred[["common_median"]]$min.mse[[1]][i,j] <- median(c(df$pred$CYT$min.mse[[1]][i,j],df$pred$IS$min.mse[[1]][i,j], df$pred$IPS$min.mse[[1]][i,j],
+                                                                           df$pred$IMPRES$min.mse[[1]][i,j], df$pred$RohIS$min.mse[[1]][i,j], df$pred$chemokine$min.mse[[1]][i,j],
+                                                                           df$pred$IS_Davoli$min.mse[[1]][i,j], df$pred$Proliferation$min.mse[[1]][i,j], df$pred$IFny$min.mse[[1]][i,j],
+                                                                           df$pred$ExpandedImmune$min.mse[[1]][i,j], 
+                                                                           df$pred$T_cell_inflamed$min.mse[[1]][i,j], df$pred$TIDE$min.mse[[1]][i,j], df$pred$MSI$min.mse[[1]][i,j]))
+                  
+                  df$pred[["common_median"]]$`1se.mse`[[1]][i,j] <-  median(c(df$pred$CYT$`1se.mse`[[1]][i,j],df$pred$IS$`1se.mse`[[1]][i,j], df$pred$IPS$`1se.mse`[[1]][i,j],
+                                                                             df$pred$IMPRES$`1se.mse`[[1]][i,j], df$pred$RohIS$`1se.mse`[[1]][i,j], df$pred$chemokine$`1se.mse`[[1]][i,j],
+                                                                             df$pred$IS_Davoli$`1se.mse`[[1]][i,j], df$pred$Proliferation$`1se.mse`[[1]][i,j], df$pred$IFny$`1se.mse`[[1]][i,j],
+                                                                             df$pred$ExpandedImmune$`1se.mse`[[1]][i,j], 
+                                                                             df$pred$T_cell_inflamed$`1se.mse`[[1]][i,j], df$pred$TIDE$`1se.mse`[[1]][i,j], df$pred$MSI$`1se.mse`[[1]][i,j]))
+                  
+                  
+                }
+              }
+              rownames(df$pred[["common_mean"]]$min.mse[[1]]) <- rownames(df$lab$CYT[[1]])
+              rownames(df$pred[["common_mean"]]$`1se.mse`[[1]]) <- rownames(df$lab$CYT[[1]])
+              rownames(df$pred[["common_median"]]$min.mse[[1]]) <- rownames(df$lab$CYT[[1]])
+              rownames(df$pred[["common_median"]]$`1se.mse`[[1]]) <- rownames(df$lab$CYT[[1]])
+              
+              
+              
+              
+              
+            }
             # }else if (task == "common_top"){
             #   
             #   df$pred[["common_top"]][[1]] <- matrix(0,nrow(df$pred$CYT[[1]]), ncol = 100)
@@ -379,7 +420,7 @@ ROC_info <-  lapply(PanCancer.names, function(Cancer){
       names(ROC_info) <- names(colors.DataType)
       return(ROC_info)
     })
-    names(ROC_info) <- names(alpha.analysis_alg)[1]
+    names(ROC_info) <- names(alpha.analysis_alg)
     return(ROC_info)
   })
   names(ROC_info) <- Datasets.names[filter.cancer]
@@ -397,6 +438,7 @@ AUC.mean.sd <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
   cat("Cancer:",Cancer, "\n")
   # check data type is available for validation data
   filter.cancer <- which(names(Datasets.names) == Cancer) 
+  filter.cancer <- 9
   AUC.mean.sd <- do.call(rbind, lapply(Datasets.names[filter.cancer], function(dataset){
     cat("Dataset:",dataset, "\n")
     AUC.mean.sd <- do.call(rbind, lapply(names(alpha.analysis_alg), function(anal){
@@ -432,9 +474,9 @@ AUC.mean.sd <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
   return(AUC.mean.sd)
 }))
 
-AUC.mean.sd$Analysis_alg <- factor(paste0(AUC.mean.sd$Model,"_", AUC.mean.sd$Analysis))
-alpha.analysis_alg <- c(1)
-names(alpha.analysis_alg) <- levels(AUC.mean.sd$Analysis_alg)
+# AUC.mean.sd$Analysis_alg <- factor(paste0(AUC.mean.sd$Model,"_", AUC.mean.sd$Analysis))
+# alpha.analysis_alg <- c(1)
+# names(alpha.analysis_alg) <- levels(AUC.mean.sd$Analysis_alg)
 
 # Subset # 
 CancerType <- "SKCM"
@@ -446,23 +488,30 @@ tmp.barplot$cv_model <- factor(tmp.barplot$cv_model, levels = c("min.mse", "1se.
 # CancerType <- "STAD"
 # AlgorithmType <- "L21"
 # Tasks.keep <- filter.analysis.task$all_top
-# tmp.barplot <- subset(AUC.mean.sd, Cancer == CancerType & Model == AlgorithmType & Task %in% Tasks.keep)
+tmp.barplot <- subset(AUC.mean.sd, cv_model == "1se.mse")
+tmp.barplot$Task <- factor(tmp.barplot$Task, levels = c("CYT","IS","IPS","IMPRES","RohIS", "chemokine","IS_Davoli","Proliferation",
+                           "IFny","ExpandedImmune", "T_cell_inflamed","TIDE","MSI", "common_mean","common_median"))
+tmp.barplot$Analysis <- factor(tmp.barplot$Analysis)
+
+tmp.barplot <- subset(AUC.mean.sd, Task %in% c("common_mean","common_median") & cv_model == "1se.mse")
+tmp.barplot$Analysis <- factor(tmp.barplot$Analysis)
+tmp.barplot$Task <- factor(tmp.barplot$Task)
 
 # Barplot #
 ggplot2::ggplot(tmp.barplot, aes(x=View, y=round(AUC.median,2), fill=Task,  
-                                 colour = Task, alpha = cv_model)) +
+                                 colour = Task, alpha = Analysis)) +
   ggplot2::geom_bar(stat="identity", position = position_dodge()) +
   ggplot2::scale_fill_manual(name = "Task", 
                              labels = levels(tmp.barplot$Task),
-                              values = c("lightgrey", "darkgrey", as.vector(colors.tasks))) +
+                              values = c("red","green")) +
   ggplot2::scale_color_manual(name = "Task", 
                      labels = levels(tmp.barplot$Task),
-                     values =  c("lightgrey", "darkgrey", as.vector(colors.tasks))) + 
-  ggplot2::scale_alpha_manual(name = "cv_model",
-                     labels = levels(tmp.barplot$cv_model),
+                     values =  c("red","green")) + 
+  ggplot2::scale_alpha_manual(name = "Analysis",
+                     labels = levels(tmp.barplot$Analysis),
                      values = c(1,0.5))  +
   ggplot2::theme_bw() +
-  ggplot2::facet_grid(Dataset ~ .) +
+  #ggplot2::facet_grid(Dataset ~ .) +
   ggplot2::ylim(0, 1) +
   ggplot2::ylab("AUC") +
   ggplot2::geom_errorbar(aes(ymin = AUC.median - AUC.sd, ymax = AUC.median + AUC.sd), 
@@ -471,6 +520,7 @@ ggplot2::ggplot(tmp.barplot, aes(x=View, y=round(AUC.median,2), fill=Task,
                      position = position_dodge(0.9)) +
   scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
                               "LRpairs"= "L-R pairs",
+                              "CYTOKINEpairs"= "Cytokine pairs",
                               "pathways"="Pathways",
                               "pathways_immunecells"="Pathways \n + \n Immunecells",
                               "TFs" = "TFs",
@@ -497,7 +547,7 @@ source("../R/computation.gold.standards.R")
 list.gold.standards <- c("CYT", "PD1", "PDL1","CTLA4")
 gold.standards <- computation.gold.standards(RNA.tpm = 2^All.DataViews.test$comb.Gide_Auslander$transcript -1, list_gold_standards = list.gold.standards)
 
-df <- predictions_immune_response[["SKCM"]][["comb.Gide_Auslander"]][["all"]][["pathways"]][["Multi_Task_EN"]]$lab[[1]][[1]]
+df <- predictions_immune_response[["SKCM"]][["comb.Gide_Auslander"]][["cor"]][["pathways"]][["Multi_Task_EN"]]$lab[[1]][[1]]
 gold.standards.curve <- list()
 gold.standards.curve<- do.call(c,lapply(list.gold.standards, function(X){
 
@@ -526,47 +576,58 @@ gold.standards.curve<- do.call(c,lapply(list.gold.standards, function(X){
             
             # pathways_immunecells - common 
             dataset = "comb.Gide_Auslander"
-            pdf("../figures/BIM_cluster_presentation/ROC_curves_predictions_on_SKCM_comb_Gide_Auslander_dataset.pdf", width = 12, height = 12)
-            par(cex.axis=1.4, mar = c(5, 5, 5, 5))
-            ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["pathways_immunecells"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
-                       avg = "threshold", col = "coral", lwd = 8, type = "S", cex.lab=1.4, ylab="True Positive Rate",
+            pdf("../figures/BIM_cluster_presentation/ROC_curves_predictions_on_SKCM_comb_Gide_Auslander_validation_dataset_pathways_immunecells.pdf", width = 12, height = 12)
+            par(cex.axis=2.2, mar = c(5, 5, 5, 5))
+            ROCR::plot(ROC_info[[Cancer]][[dataset]][["cor"]][["pathways_immunecells"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+                       avg = "threshold", col = colors.DataType["CYTOKINEpairs"], lwd = 8, type = "S", cex.lab=2.2, ylab="True Positive Rate",
                        xlab="False Positive Rate")
             
-            # # immunecells - common 
-            # ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["immunecells"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+            # # immunecells - common
+            # ROCR::plot(ROC_info[[Cancer]][[dataset]][["cor"]][["immunecells"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
             #            avg = "threshold", col = colors.DataType[[2]], lwd = 5, type = "S", add = TRUE)
-            # # pathways - common 
-            # ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["pathways"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+            # # pathways - common
+            # ROCR::plot(ROC_info[[Cancer]][[dataset]][["cor"]][["pathways"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
             #            avg = "threshold", col = colors.DataType[[3]], lwd = 5, type = "S", add = TRUE)
-            
-            # # transcript - common top
-            # ROCR::plot(ROC_info[[Cancer]][[dataset]][[anal]][["transcript"]][[algorithm]][["common_top"]]$Curve[[1]],
-            #            avg = "threshold", col = colors.tasks[[1]], lwd = 5, type = "s", add = TRUE)
+
+            # transcript - common
+            ROCR::plot(ROC_info[[Cancer]][[dataset]][["cor"]][["transcript"]][[algorithm]][["common_median"]]$Curve$perf.1se.mse,
+                        avg = "threshold", col = colors.DataType["transcript"], lwd = 8, type = "s", add = TRUE)
             
             # gold standard - CYT
-            ROCR::plot(gold.standards.curve$CYT$Curve, col = "darkgrey", lwd = 2, type = "S", lty = 1, add = TRUE)
+            ROCR::plot(gold.standards.curve$CYT$Curve, col = "gray", lwd = 2, type = "S", lty = 1, add = TRUE)
             
             # # gold standard - PD1
-            ROCR::plot(gold.standards.curve$PD1$Curve,col = "darkred", lwd = 2, type = "S", lty = 1, add = TRUE)
+            ROCR::plot(gold.standards.curve$PD1$Curve,col = "gray50", lwd = 2, type = "S", lty = 1, add = TRUE)
             
             # # gold standard - PDL1
             # ROCR::plot(gold.standards.curve$PDL1$Curve,col = "chocolate1", lwd = 2, type = "S", lty = 1, add = TRUE)
             
-            # # gold standard - CTLA4
-            ROCR::plot(gold.standards.curve$CTLA4$Curve,col = "darkgreen", lwd = 2, type = "S", lty = 1, add = TRUE)
+            # # # gold standard - CTLA4
+            # ROCR::plot(gold.standards.curve$CTLA4$Curve,col = "gray50", lwd = 2, type = "S", lty = 1, add = TRUE)
             
             abline(a=0, b=1, lty = 3, lwd = 1, col = "antiquewhite4")
             
             
-            title(paste0("Dataset: ", dataset, "(PD-1, PD-1 & CTLA-4)") )
+            #title(paste0("Dataset: ", dataset, "(PD-1, PD-1 & CTLA-4)") )
 
             # AUC_median <- round(subset(AUC.mean.sd, Cancer == Cancer & Dataset == dataset & View == view &
             #                              Analysis == anal & Model == algorithm & Task == task, AUC.median),2)
             
-            legend(x = 0.6, y = 0.13, legend = c("Pathways + ImmuneCells", "CYT", "PD1", "CTLA4"), 
-                   col = c("coral", 
-                           "lightgrey", "darkgreen", "darkgoldenrod1"),
-                   lty = c(1,1,1,1), lwd = c(8,2,2,2), cex = 1.5, text.width = 0.1, bty = "n")
+            legend(x = 0.49,y = 0.42, legend = c(paste0("Pathways \n       +          ","(AUC=",
+                                                       round(subset(AUC.mean.sd, Task == "common_median" & Analysis == "cor" & cv_model == "1se.mse" &
+                                                                             View == "pathways_immunecells")$AUC.median,3),")"," \nImmuneCells"),
+                                                 # c(paste0("Cytokine pairs", "(AUC=",
+                                                 #        round(subset(AUC.mean.sd, Task == "common_median" & Analysis == "cor" & cv_model == "1se.mse" &
+                                                 #                       View == "CYTOKINEpairs")$AUC.median,3),")"),
+                                                 paste0("Transcriptomics", "(AUC=",
+                                                 round(subset(AUC.mean.sd, Task == "common_median" & Analysis == "cor" & cv_model == "1se.mse" &
+                                                                View == "transcript")$AUC.median,3),")"), 
+                                                 paste0("Cytolytic Ativity", "(AUC=", round(gold.standards.curve[["CYT"]][["Barplot"]],3),")"),
+                                                        
+                                                 paste0("PD1", "(AUC=", round(gold.standards.curve[["PD1"]][["Barplot"]],3),")")),
+                                                        
+                   col = c(colors.DataType["CYTOKINEpairs"],colors.DataType["transcript"],"gray","gray50"),
+                   lty = c(1,1,1,1), lwd = c(8,8,2,2), cex = 1.8, bty = "n")
             
 
             dev.off()

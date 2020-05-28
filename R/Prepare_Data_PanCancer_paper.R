@@ -117,10 +117,10 @@ PanCancer.names.some <- PanCancer.names[-c(1:3)]
 
 # *****************
 # Initialize DataViews
-DataViews.no_filter <- vector("list", length = 7)
-names(DataViews.no_filter) <- c("pathways", "immunecells", "TFs", "sTIL", "LRpairs", "CYTOKINEpairs","transcript")
-DataViews.filter_prot <- vector("list", length = 4)
-names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
+# DataViews.no_filter <- vector("list", length = 7)
+# names(DataViews.no_filter) <- c("pathways", "immunecells", "TFs", "sTIL", "LRpairs", "CYTOKINEpairs","transcript")
+# DataViews.filter_prot <- vector("list", length = 4)
+# names(DataViews.filter_prot) <- c("transcript", "Protall", "pathways", "TFs")
 
 # ***************
 # Remove transcripts used to build ImmuneResponse (IS,CYT,IPS,IMPRES,RohISS,Chemokine,Proliferation,IS_Davoli,IFNy,ExpandedImmune,
@@ -248,7 +248,7 @@ sapply(PanCancer.names, function(Cancer){
 # Inter-cellular networks data --> L.R pairs and Cytokine pairs
 
 sapply(PanCancer.names, function(Cancer){
-  
+  Cancer = "SKCM"
   file <- dir(paste0("../data/raw_data_tcga/RNAseq/20160128_version/stddata__2016_01_28/", Cancer,"/20160128/",
                      "gdac.broadinstitute.org_", Cancer,".Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes__data.Level_3.2016012800.0.0"),
               recursive = TRUE, pattern = "data.txt", full.names = TRUE)
@@ -271,28 +271,42 @@ sapply(PanCancer.names, function(Cancer){
   # Sample screening:
   keep.samples.no_filter <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS[[Cancer]], 1, 15)
   keep.samples.filter_prot <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS_prot[[Cancer]], 1, 15)
+  keep.samples.filter_spat <- substr(TCGA.samples.pancancer_with_screen_quantiseg_IS_SpatialTILs[[Cancer]], 1, 15)
   
   load(paste0("../data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_no_filter_",Cancer, ".RData"))
   load(paste0("../data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
+  load(paste0("../data/PanCancer/",Cancer,"/new/DataViews_filter_Spat_",Cancer, ".RData"))
   
   # Remove ImmuneResponse genes (the function should take care of it)
   
   # Sample screening:
   tpm.no_filter <- TPM.transcripts[, keep.samples.no_filter]
   tpm.filter_prot <- TPM.transcripts[, keep.samples.filter_prot]
+  tpm.filter_spat <- TPM.transcripts[, keep.samples.filter_spat]
   
-  ## TF activity computation
+  ## L-R and cytokine pairs computation
   
-  # Computation of LR pairs activity (input matrix [genes, samples], ouput matrix [sample, TFs])
+  # Computation of LR pairs (input matrix [genes, samples], ouput matrix [sample, TFs])
   LRpairs.no_filter <- compute.LR.pairs(RNA.tpm = tpm.no_filter, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
   LRpairs.filter_prot <- compute.LR.pairs(RNA.tpm = tpm.filter_prot, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
+  LRpairs.filter_spat <- compute.LR.pairs(RNA.tpm = tpm.filter_spat, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
   
   # Insert into DataViews
-  DataViews.no_filter$LRpairs <- as.data.frame(LRpairs.no_filter)
-  DataViews.filter_prot$LRpairs <- as.data.frame(LRpairs.filter_prot)
+  DataViews.no_filter$LRpairs <- as.data.frame(LRpairs.no_filter$LRpairs)
+  DataViews.no_filter$CYTOKINEpairs <- as.data.frame(LRpairs.no_filter$CYTOKINEpairs)
   
-  save(DataViews.no_filter, file = paste0("../data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_no_filter_",Cancer, ".RData"))
-  save(DataViews.filter_prot, file = paste0("../data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
+  DataViews.filter_prot$LRpairs <- as.data.frame(LRpairs.filter_prot$LRpairs)
+  DataViews.filter_prot$CYTOKINEpairs <- as.data.frame(LRpairs.filter_prot$CYTOKINEpairs)
+  
+  DataViews.filter_Spat$LRpairs <- as.data.frame(LRpairs.filter_spat$LRpairs)
+  DataViews.filter_Spat$CYTOKINEpairs <- as.data.frame(LRpairs.filter_spat$CYTOKINEpairs)
+  
+  # save(DataViews.no_filter, file = paste0("../data/BIM_cluster_presentation/","DataViews_no_filter_",Cancer, ".RData"))
+  # save(DataViews.filter_prot, file = paste0("../data/BIM_cluster_presentation/","DataViews_filter_prot_",Cancer, ".RData"))
+  # save(DataViews.filter_Spat, file = paste0("../data/BIM_cluster_presentation/","DataViews.filter_Spat_",Cancer, ".RData"))
+  
+  # save(DataViews.no_filter, file = paste0("../data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_no_filter_",Cancer, ".RData"))
+  # save(DataViews.filter_prot, file = paste0("../data/PanCancer/",Cancer,"/new_remove_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
   
 })
 
@@ -323,7 +337,7 @@ sapply(PanCancer.names.some, function(Cancer){
   
   load(paste0("../data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
   load(paste0("../data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
-  
+
   # Remove ImmuneResponse genes (the function should take care of it)
   
   # Sample screening:
@@ -337,16 +351,16 @@ sapply(PanCancer.names.some, function(Cancer){
   LRpairs.filter_prot <- compute.LR.pairs(RNA.tpm = tpm.filter_prot, remove.genes.ICB_proxies=FALSE, compute.cytokines.pairs=TRUE)
   
   # Insert into DataViews
-  DataViews.no_filter$LRpairs <- as.data.frame(LRpairs.no_filter)
-  DataViews.filter_prot$LRpairs <- as.data.frame(LRpairs.filter_prot)
+  DataViews.no_filter$LRpairs <- as.data.frame(LRpairs.no_filter$LRpairs)
+  DataViews.no_filter$CYTOKINEpairs <- as.data.frame(LRpairs.no_filter$CYTOKINEpairs)
+  
+  DataViews.filter_prot$LRpairs <- as.data.frame(LRpairs.filter_prot$LRpairs)
+  DataViews.filter_prot$CYTOKINEpairs <- as.data.frame(LRpairs.filter_prot$CYTOKINEpairs)
   
   save(DataViews.no_filter, file = paste0("../data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_no_filter_",Cancer, ".RData"))
   save(DataViews.filter_prot, file = paste0("../data/PanCancer/",Cancer,"/new_keep_all_genes/DataViews_filter_prot_",Cancer, ".RData"))
-  
+
 })
-
-
-
 
 # ***************
 # Protein abundance (RPPA) data --> Proteomics

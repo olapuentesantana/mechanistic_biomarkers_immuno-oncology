@@ -59,8 +59,7 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
     }
     rownames(gene_expr) <- genes 
   }
-  write.csv(genes, file = "pre-processing/gene_input.csv", quote = FALSE, row.names = FALSE, col.names = FALSE)
-  
+
   # # We need approved gene symbols
   # genes_updated <- UpdateSymbolList(symbols = genes)
   
@@ -72,7 +71,6 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
   }
   
   gene_expr <- as.data.frame(gene_expr)
-  
   
   # Compute L-R pairs 
   cat("Computing L-R pairs:  \n")
@@ -91,6 +89,6 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
     idy <- na.exclude(match(CYTOKINE.pairs_subnetwork, colnames(LR.pairs.computed)))
     CYTOKINE.pairs.computed <- LR.pairs.computed[,idy]
   }
-
-  return(LR.pairs.computed)
+  Ligand.Receptor.data <- list(LRpairs = LR.pairs.computed, CYTOKINEpairs = CYTOKINE.pairs.computed)
+  return(Ligand.Receptor.data)
 }

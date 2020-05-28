@@ -3,7 +3,7 @@
 ###########################################################################################
 
 elastic_net_train <- function(drug_source, views_source, view_combination, standardize_any = F, standardize_response = F,
-                                family, parameters, measure_type = "mse", k_fold = 5, parallelize = T, iteration) {
+                                family, parameters, measure_type = c("mse","class"), k_fold = 5, parallelize = T, iteration) {
   
   # ****************
   # packages
@@ -21,15 +21,19 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   P <- length(names_view) # number of views
   alpha_range <- parameters$alpha
   drugs <- colnames(drug_source)
-  view_source.comb <- do.call(cbind, lapply(1:length(views_source), function(X) return(views_source[[X]])))
-  features <- colnames(view_source.comb)
-
-  # Normalization training set: Z score
-  ## View:
-  views_source.Z <- as.matrix(view_source.comb)
-  ## Response: 
+  ## Views:
+  if (family == "mgaussian") {
+    view_source.comb <- do.call(cbind, lapply(1:length(views_source), function(X) return(views_source[[X]])))
+    views_source.Z <- as.matrix(view_source.comb)
+    features <- colnames(views_source.Z)
+  }else{
+    views_source.Z <- as.matrix(views_source)
+    features <- colnames(views_source)
+  }
+  ## Responses: 
   drug_source.Z <- as.matrix(drug_source)
 
+  
   # ****************
   # Hyperparameters estimation: alpha and lambda
   
@@ -78,7 +82,7 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
     names(tmp) = X$lambda
     return(tmp)})
   # COEF
-  if (family == "gaussian"){
+  if (family %in% c("gaussian", "binomial")){
     coef_for_each_alpha <- lapply(fit, function(X) {
       tmp = as.matrix(coef(X, s = X$lambda))
       colnames(tmp) = X$lambda
@@ -111,9 +115,10 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   lambda_min_MSE = sapply(strsplit(names(min_MSE), split = "-.", fixed = TRUE), function(X) return(X[2]))
   
   # * strange case where two lambdas obtain the same mse, therefore we have 2 pair alpha-lambda
-  if (length(alpha_min_MSE) > 1 & length(lambda_min_MSE) > 1){
+  if (length(alpha_min_MSE) > 1 | length(lambda_min_MSE) > 1){
     alpha_min_MSE <- unique(alpha_min_MSE)
     lambda_min_MSE <- max(lambda_min_MSE)
+    min_MSE <- min_MSE[paste0(alpha_min_MSE,"-.",lambda_min_MSE)]
   }
 
   ## 2.  Lambda-alpha value leading leading to 1 SE + min MSE 
@@ -126,13 +131,20 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   lambda_1se_MSE <- sapply(strsplit(names(one.se_MSE), split = "-.", fixed = TRUE), function(X) return(X[2]))
   alpha_1se_MSE <- alpha_min_MSE
 
+  # * strange case where two lambdas obtain the same mse, therefore we have 2 pair alpha-lambda
+  if (length(alpha_1se_MSE) > 1 | length(lambda_1se_MSE) > 1){
+    alpha_1se_MSE <- unique(alpha_1se_MSE)
+    lambda_1se_MSE <- max(lambda_1se_MSE)
+    one.se_MSE <- one.se_MSE[paste0(alpha_1se_MSE,"-.",lambda_1se_MSE)]
+  }
+  
   # Saving parameters for each iteration:
   parameters.glmnet.1se <- list(alpha_1se_MSE, lambda_1se_MSE)  
   parameters.glmnet.min <- list(alpha_min_MSE, lambda_min_MSE)
   names(parameters.glmnet.1se) <- names(parameters.glmnet.min) <- c("alpha", "lambda")
 
   # 3. Selecting coefficients for both pairs of alpha-lambda
-  if (family == "gaussian"){
+  if (family %in% c("gaussian", "binomial")){
   # Alpha-lambda min
     coef_min <- as.matrix(data_task_cv.glmnet$coef[[paste0(alpha_min_MSE,"-")]][,lambda_min_MSE])
     features.glmnet.min <- coef_min ; names(features.glmnet.min) <- rownames(coef_min)

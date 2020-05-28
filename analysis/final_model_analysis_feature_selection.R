@@ -52,8 +52,7 @@ views <- c(pathways = 'gaussian', #1
 # Select data to examine
 
 # All: comparison
-view_combinations <- list(views[c(1,3)], views[1], views[3])
-
+view_combinations <- list(views[c(1,3)], views[8])
 # ------------------------------------------------------------------------------------------------------------ #
 # Collect data from L21 cross-validation results --> kfold = 5
 # ------------------------------------------------------------------------------------------------------------ #
@@ -62,15 +61,15 @@ view_combinations <- list(views[c(1,3)], views[1], views[3])
 # Initialize variable to collect results
 summary_view_features <- NULL
 algorithms <- c("Multi_Task_EN")
-analysis <- c("all")
+analysis <- c("all","cor")
 
 # for (Cancer in PanCancer.names){
   Cancer = "SKCM"
   # load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
-  load(paste0("../data/PanCancer/", Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))
+  load(paste0("../data/BIM_cluster_presentation/DataViews_no_filter_", Cancer,".RData"))
 
   # file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
-  file <- dir(path = paste0("../output/new_remove_all_genes/",Cancer), pattern = "all_cv_res_", full.names = T, recursive = F)
+  file <- dir(path = paste0("../output/BIM_cluster_presentation"), pattern = "all_cv_res_", full.names = T, recursive = F)
   
   summary_analysis <- do.call(rbind, lapply(analysis, function(anal){
     
@@ -181,11 +180,11 @@ colors.cancer_types <- toupper(c("#d29d00","#9445cc","#8cce2f","#ef49c3","#1b8c0
 
 # names(colors.cancer_types) <- levels(summary_view_features$CancerType)
 
-colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c"))#,"#c95574","#747fca"))#,"#ca743e"))
+colors.DataType <- toupper(c("#b65ebd","#c88645"))
 names(colors.DataType) <- levels(summary_view_features$DataType)
 
-colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0"))
-                          #"#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
+colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0",
+                          "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
 names(colors.tasks) <- levels(summary_view_features$task)
 
 # colors.algorithm <- toupper(c("#ff7433","#853760"))
@@ -276,28 +275,42 @@ sapply(names(colors.cancer_types), function(Cancer){
     
     # Per task
       summary_view_features.mech_sig.cancer <- subset(summary_view_features, DataType == "pathways_immunecells" &
-                                                      CancerType == "SKCM(n=467)" & cv_model == "1se.mse" & task == "CYT")
-      median.features <- aggregate(estimate ~ feature, FUN = "median", na.rm = T, data = summary_view_features.mech_sig.cancer)
+                                                      CancerType == "SKCM(n=467)" & cv_model == "1se.mse" & AnalysisType == "cor" & task == "CYT")
+      median.features <- aggregate(estimate ~ feature + iteration + DataType, FUN = "median", na.rm = T, data = summary_view_features.mech_sig.cancer)
+      median.features.iterations <- aggregate(estimate ~ feature, FUN = "median", na.rm = T, data = summary_view_features.mech_sig.cancer)
+      
+      frequency.iterations <- aggregate(estimate ~ feature + task, FUN = function(X){sum(X != 0)}, data = summary_view_features.mech_sig.cancer)
       ## Sort features by median value:
-      median.features.sort <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
-      median.features.sort$feature <- as.character(median.features.sort$feature)
-      features_order <- median.features.sort$feature
-      summary_view_features.mech_sig.cancer$feature <- factor(summary_view_features.mech_sig.cancer$feature, levels = features_order)
-      ggplot(summary_view_features.mech_sig.cancer, aes(x = feature, y = estimate, fill = task,
-                                               colour = task, alpha = task)) +
+      median.features.iterations <- median.features.iterations[order(abs(median.features.iterations$estimate), decreasing = TRUE),]
+      remove_features <- median.features.iterations$feature[which(median.features.iterations$estimate == 0)]
+      # frequency.iterations <- frequency.iterations[!frequency.iterations$feature %in% remove_features,]
+                        
+      non_zero_summary <- summary_view_features.mech_sig.cancer[!summary_view_features.mech_sig.cancer$feature %in% remove_features,]
+      
+      summary_view_features.mech_sig.cancer$feature <- factor(summary_view_features.mech_sig.cancer$feature,
+                                                              levels = unique(median.features.iterations$feature))
+      
+      non_zero_summary$feature <- factor(non_zero_summary$feature, levels = unique(median.features.iterations$feature))
+      # One task
+      summary_view_features.mech_sig.cancer.task <- subset(summary_view_features.mech_sig.cancer, task == "CYT")
+      median.features <- aggregate(estimate ~ feature + DataType + task + AnalysisType, FUN = "median", na.rm = T, data = summary_view_features.mech_sig.cancer.task)
+      median.features <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
+      
+      summary_view_features.mech_sig.cancer.task$feature <- factor(summary_view_features.mech_sig.cancer.task$feature, 
+                                                                   levels = as.character(median.features$feature))
+      ggplot(summary_view_features.mech_sig.cancer.task, aes(x = feature, y = estimate, fill = task, color = task)) +
         geom_boxplot(outlier.shape = NA) +
-        scale_fill_manual(name = "Task", 
-                          labels = "CYT",
-                          values = as.character(colors.tasks[3])) +
-        scale_color_manual(name = "Task", 
-                           labels = "CYT",
-                           values = as.character(colors.tasks[3])) + 
-        scale_alpha_manual(name = "Task",
-                           labels = "CYT",
-                           values = 0.6, guide = F)  +
+        scale_fill_manual(name = "Task",
+                          labels = "Cytolytic Activity",
+                          values = "#999a3e") +
+        scale_color_manual(name = "Task",
+                           labels = "Cytolytic Activity",
+                           values = "#999a3e") +
+
         theme_minimal() +
         # ylim(c(-0.1,0.9)) +
         # coord_fixed(ratio = 2) +
+        geom_hline(yintercept = 0, linetype="dashed") + 
         scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
                                     "Macrophages_M2"= "M2",
                                     "B_cells" = "B cells",
@@ -306,17 +319,59 @@ sapply(names(colors.cancer_types), function(Cancer){
                                     "T_cells_CD4" = "CD4 T cells",
                                     "NK_cells" = "NK cells",
                                     "Dendritic_cells" = "DC cells")) +
-        theme(axis.text.x = element_text(size=13, angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_text(size=13,face="bold",vjust = 0.9),
-              axis.text.y = element_text(size=13,face=), axis.ticks.x = element_blank(), axis.ticks.y = element_line(size = 1),
-              axis.title.y = element_text(size=13,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
-              legend.position = c(0.9,0.9), legend.direction = "horizontal",
-              legend.text=element_text(size=13), legend.title = element_text(size = 12, face="bold", vjust = 0.5),
+        theme(axis.text.x = element_text(size=20,face="bold", angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_text(size=16,face="bold",vjust = 0.9),
+              axis.text.y = element_text(size=20,face="bold"), axis.ticks.x = element_blank(), axis.ticks.y = element_line(size = 1),
+              axis.title.y = element_text(size=16,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
+              legend.position = c(0.85,0.8), legend.direction = "vertical",
+              legend.text=element_text(size=18), legend.title = element_text(size = 12, face="bold", vjust = 0.5),
               panel.border = element_blank(), panel.background = element_blank(), axis.line = element_blank()) + 
-        labs(y = "estimated coefficient", x = "features") + 
-        ggtitle(paste0("Pathways + ImmuneCells cross-validation coefficients (min MSE + 1SE model)"))
+        labs(y = "estimated coefficient", x = "features") 
+        #ggtitle(paste0("Pathways + ImmuneCells cross-validation coefficients (min MSE + 1SE model)"))
     
-    ggsave(paste0("../Figures/BIM_cluster_presentation/Boxplot_displaying_coef_pathways_immunecells_1se_mse_model_CYT.pdf"), width = 12, height = 12)
-  
+    ggsave(paste0("../Figures/BIM_cluster_presentation/Boxplot_displaying_coef_pathways_immunecells_1se_mse_model_cor_CYT.pdf"), width = 12, height = 12)
+   
+    frequency.iterations.task <- subset(frequency.iterations, task == "CYT")
+    ggplot(frequency.iterations.task, aes(x = feature, y = estimate, fill = task, color = task)) +
+      geom_bar(stat="identity", color="red") +
+      # geom_text(aes(label= sign.feature), stat = "identity", color="black", size = 1, 
+      #           position = position_stack(vjust = 0.5)) +
+      scale_fill_manual(name = "Task", 
+                        labels = "CYT",
+                        values = "red",
+                        guide = F) +
+      scale_color_manual(name = "Task", 
+                         labels = "CYT",
+                         values = "red",
+                         guide = F) + 
+      theme_minimal() +
+      # coord_fixed(ratio = 1)+
+      # facet_grid(task ~ .) +
+      scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
+                                  "Macrophages_M2"= "M2",
+                                  "B_cells" = "B cells",
+                                  "T_cells_regulatory_Tregs" = "Tregs",
+                                  "Macrophages_M1"= "M1",
+                                  "T_cells_CD4" = "CD4 T cells",
+                                  "NK_cells" = "NK cells",
+                                  "Dendritic_cells" = "DC cells")) +
+      theme(axis.text.x = element_blank(), axis.title.x =  element_blank(),
+            axis.text.y = element_text(size=12,face="bold"), axis.ticks.x = element_line(size = 1), axis.ticks.y = element_line(size = 1),
+            axis.title.y = element_text(size=12,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
+            legend.position = "bottom", legend.direction = "horizontal",  strip.text.y = element_text(angle = 360),
+            legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
+            panel.border = element_blank(), panel.background = element_blank(), 
+            #axis.line = element_line(size=0.5, colour = "black"), 
+            aspect.ratio = 0.05) + 
+      labs(y = "Number of\n times") +
+      # ggtitle(paste0(input," - ", Cancer,": feature selection all tasks in min MSE + 1SE model"), 
+      #         subtitle = "* Balance classes of directions due to coefficients close to zero are resolved with sign = 0")
+    
+    ggsave(paste0("../figures/BIM_cluster_presentation/Features_stability_pathways_immunecells_cor_tasks.pdf"), width = 12, height = 12)
+    
+    
+    
+    
+    
   })
 })
 
@@ -326,11 +381,20 @@ sapply(names(colors.cancer_types), function(Cancer){
 # color.analysis_alg <- c("#d8005e","#a09f00","#ffad72")
 # names(color.analysis_alg) <- levels(summary_view_features_tmp.order$Analysis_Alg)
 
-frequency <- aggregate(estimate ~ feature + cv_model + task + DataType + CancerType, FUN = function(X){sum(X != 0)},
-                       data = summary_view_features.sort)
+summary_view_features.mech_sig.cancer <- subset(summary_view_features, DataType == "CYTOKINEpairs" &
+                                                  CancerType == "SKCM(n=467)" & cv_model == "1se.mse" & AnalysisType == "cor")
+median.features <- aggregate(estimate ~ feature, FUN = "median", na.rm = T, data = summary_view_features.mech_sig.cancer)
+## Sort features by median value:
+median.features.sort <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
+median.features.sort$feature <- as.character(median.features.sort$feature)
+features_order <- median.features.sort$feature
+summary_view_features.mech_sig.cancer$feature <- factor(summary_view_features.mech_sig.cancer$feature, levels = unique(features_order))
 
-sign.estimate <- aggregate(estimate ~ feature + cv_model + task  + DataType + CancerType, FUN = function(X){sign(median(X))},
-                           data = summary_view_features.sort)
+frequency <- aggregate(estimate ~ feature + cv_model + task + DataType + AnalysisType + CancerType, FUN = function(X){sum(X != 0)},
+                       data = summary_view_features.mech_sig.cancer)
+
+sign.estimate <- aggregate(estimate ~ feature + cv_model + task  + DataType + AnalysisType + CancerType, FUN = function(X){sign(median(X))},
+                           data = summary_view_features.mech_sig.cancer)
 
 frequency <- cbind(frequency, sign.feature = sign.estimate$estimate)
 frequency$sign.feature <- gsub(-1,"-", frequency$sign.feature)
@@ -342,24 +406,37 @@ frequency$sign.feature <- factor(frequency$sign.feature)
 # sign <- ifelse(table.tmp[c(1:3)] > sum(table.tmp[c(1:3)])*0.8,1, 0)
 # direction <- ifelse(any(sign == 1), names(sign)[which(sign == 1)], 0)
 
-# Per CancerType
-Cancer = "SKCM(n=467)"
-# Per DataType
-input = "pathways_immunecells"
+# # Per CancerType
+# Cancer = "SKCM(n=467)"
+# # Per DataType
+input = "CYTOKINEpairs"
+# 
+# frequency.cancer.input <- subset(frequency, DataType == input & CancerType == Cancer & cv_model == "1se.mse")
 
-frequency.cancer.input <- subset(frequency, DataType == input & CancerType == Cancer & cv_model == "1se.mse")
-
-ggplot(frequency.cancer.input, aes(x = feature, y = estimate)) +# fill = Analysis_Alg)) +
+ggplot(frequency, aes(x = feature, y = estimate, fill = task, color = task)) +
   geom_bar(stat="identity", color="black") +
-  geom_text(aes(label= sign.feature), stat = "identity", color="black", size = 3, 
+  geom_text(aes(label= sign.feature), stat = "identity", color="black", size = 1, 
             position = position_stack(vjust = 0.5)) +
-  # scale_fill_manual(name = "Analysis", 
-  #                    labels = names(color.analysis_alg),
-  #                    values = color.analysis_alg)  +
+  scale_fill_manual(name = "Task", 
+                    labels = names(colors.tasks),
+                    values = as.character(colors.tasks),
+                    guide = F) +
+  scale_color_manual(name = "Task", 
+                     labels = names(colors.tasks),
+                     values = as.character(colors.tasks),
+                     guide = F) + 
   theme_minimal() +
+  coord_fixed(ratio = 2)+
   facet_grid(task ~ .) +
-  scale_x_discrete(labels = function(x) substr(x,1,18)) +
-  theme(axis.text.x = element_text(size=9,face="bold", angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
+  scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
+                              "Macrophages_M2"= "M2",
+                              "B_cells" = "B cells",
+                              "T_cells_regulatory_Tregs" = "Tregs",
+                              "Macrophages_M1"= "M1",
+                              "T_cells_CD4" = "CD4 T cells",
+                              "NK_cells" = "NK cells",
+                              "Dendritic_cells" = "DC cells")) +
+  theme(axis.text.x = element_text(size=7,face="bold", angle = 90, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
         axis.text.y = element_text(size=9,face="bold"), axis.ticks.x = element_line(size = 1), axis.ticks.y = element_line(size = 1),
         axis.title.y = element_text(size=10,face="bold",vjust = 0.9), strip.background = element_blank(), panel.spacing.y =  unit(1, "lines"),
         legend.position = "bottom", legend.direction = "horizontal",  strip.text.y = element_text(angle = 360),
@@ -370,7 +447,7 @@ ggplot(frequency.cancer.input, aes(x = feature, y = estimate)) +# fill = Analysi
   ggtitle(paste0(input," - ", Cancer,": feature selection all tasks in min MSE + 1SE model"), 
           subtitle = "* Balance classes of directions due to coefficients close to zero are resolved with sign = 0")
 
-ggsave(paste0("../figures/BIM_cluster_presentation/Features_stability_Pathways_ImmmuneCells_all_tasks.pdf"), width = 12, height = 12)
+ggsave(paste0("../figures/BIM_cluster_presentation/Features_stability_CYTOKINEpairs_all_tasks.pdf"), width = 12, height = 12)
 
 
 ## ---------------------------------------------------------------------------------------------- ##

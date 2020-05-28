@@ -31,7 +31,7 @@ source("../R/compute.LR.pairs.R")
 Datasets.names <-  dir("../data/Validation/Francesca", full.names = F, recursive = F)
 DataViews.test <- list()
 Labels.test <- list()
-DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
+Labels.test <- do.call(c, lapply(Datasets.names, function(dataset){
   
   # Samples information
   load(paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_sampleinfo.rdata"))
@@ -49,17 +49,17 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
   # Cell fractions
   cell_fractions <- as.data.frame(t(read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_cell_fractions.txt"),  
                                sep = "\t", header = TRUE, row.names = 1)))
-  # LRpairs
-  LRpairs <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", tolower(dataset), ".txt"),  
-                         sep = "\t", header = TRUE, row.names = 2)
-  # Remove three annotation columns
-  LRpairs <- as.data.frame(LRpairs[,-c(1,2,3)])
-  
-  # CYTOKINEpairs
-  CYTOKINEpairs <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", tolower(dataset), "_cytokine.txt"),  
-                         sep = "\t", header = TRUE, row.names = 2)
-  # Remove three annotation columns
-  CYTOKINEpairs <- as.data.frame(CYTOKINEpairs[,-c(1,2,3)])
+  # # LRpairs
+  # LRpairs <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", tolower(dataset), ".txt"),  
+  #                        sep = "\t", header = TRUE, row.names = 2)
+  # # Remove three annotation columns
+  # LRpairs <- as.data.frame(LRpairs[,-c(1,2,3)])
+  # 
+  # # CYTOKINEpairs
+  # CYTOKINEpairs <- read.table(file = paste0("../data/Validation/Francesca/", dataset, "/", tolower(dataset), "_cytokine.txt"),  
+  #                        sep = "\t", header = TRUE, row.names = 2)
+  # # Remove three annotation columns
+  # CYTOKINEpairs <- as.data.frame(CYTOKINEpairs[,-c(1,2,3)])
   
   
   # Filter samples according to clinical data (pre-treatment samples only) #
@@ -75,11 +75,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre)[9] <- "T_cells_regulatory_Tregs"
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, match(pre.sampleinfo$SRA, colnames(LRpairs))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, match(pre.sampleinfo$SRA, colnames(CYTOKINEpairs))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, match(pre.sampleinfo$SRA, colnames(LRpairs))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, match(pre.sampleinfo$SRA, colnames(CYTOKINEpairs))]
     
     if (identical(colnames(gene.count), colnames(gene.tpm))){
       gene.tpm.pre <- gene.tpm[, order.pre]
@@ -106,11 +106,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     colnames(cell_fractions.pre) <- rownames(pre.sampleinfo)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, match(rownames(pre.sampleinfo), colnames(LRpairs))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, match(rownames(pre.sampleinfo), colnames(LRpairs))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs))]
     
     
     if (identical(colnames(gene.count), colnames(gene.tpm))){
@@ -134,11 +134,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre)[9] <- "T_cells_regulatory_Tregs"
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, match(pre.sampleinfo$SRA, colnames(LRpairs))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, match(pre.sampleinfo$SRA, colnames(CYTOKINEpairs))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, match(pre.sampleinfo$SRA, colnames(LRpairs))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, match(pre.sampleinfo$SRA, colnames(CYTOKINEpairs))]
     
     if (identical(colnames(gene.count), colnames(gene.tpm))){
       gene.tpm.pre <- gene.tpm[, order.pre]
@@ -201,11 +201,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre)[9] <- "T_cells_regulatory_Tregs"
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, match(rownames(pre.sampleinfo), colnames(LRpairs))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, match(rownames(pre.sampleinfo), colnames(LRpairs))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs))]
     
     if (identical(colnames(gene.count), colnames(gene.tpm))){
       gene.tpm.pre <- gene.tpm[, order.pre]
@@ -233,11 +233,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre)[9] <- "T_cells_regulatory_Tregs"
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, na.omit(match(rownames(pre.sampleinfo), colnames(LRpairs)))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, na.omit(match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs)))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, na.omit(match(rownames(pre.sampleinfo), colnames(LRpairs)))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, na.omit(match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs)))]
     
     if (identical(colnames(gene.count), colnames(gene.tpm))){
       gene.tpm.pre <- gene.tpm[, order.pre]
@@ -277,11 +277,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre)[9] <- "T_cells_regulatory_Tregs"
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, match(rownames(pre.sampleinfo), colnames(LRpairs))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, match(rownames(pre.sampleinfo), colnames(LRpairs))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, match(rownames(pre.sampleinfo), colnames(CYTOKINEpairs))]
     
     if (identical(colnames(gene.count), colnames(gene.tpm))){
       gene.tpm.pre <- gene.tpm[, order.pre]
@@ -315,11 +315,11 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     rownames(cell_fractions.pre)[9] <- "T_cells_regulatory_Tregs"
     rownames(cell_fractions.pre) <-  gsub(".","_", rownames(cell_fractions.pre), fixed = T)
     
-    # ligand-receptor pairs
-    LRpairs.pre <- LRpairs[, na.omit(match(rownames(pre.sampleinfo.aval), colnames(LRpairs)))]
-    
-    # cytokine pairs
-    CYTOKINEpairs.pre <- CYTOKINEpairs[, na.omit(match(rownames(pre.sampleinfo.aval), colnames(CYTOKINEpairs)))]
+    # # ligand-receptor pairs
+    # LRpairs.pre <- LRpairs[, na.omit(match(rownames(pre.sampleinfo.aval), colnames(LRpairs)))]
+    # 
+    # # cytokine pairs
+    # CYTOKINEpairs.pre <- CYTOKINEpairs[, na.omit(match(rownames(pre.sampleinfo.aval), colnames(CYTOKINEpairs)))]
 
     if (identical(colnames(gene.count), colnames(gene.tpm))){
       gene.tpm.pre <- gene.tpm[, order.pre]
@@ -330,51 +330,50 @@ DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
     label.pre <- data.frame(Sample = rownames(pre.sampleinfo.aval), label = clinical_PD1.pre.aval$Response)
   }
     
-    # ****************
-    # Computation of pathways scores (input matrix [genes, samples], ouput matrix [sample, pathways])
-    Pathway_activities <- compute.pathways.scores(RNA.raw_counts = gene.count.pre, remove.genes.ICB_proxies=TRUE)
-    
-    # ****************
-    # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
-    TF_activities <- compute.TF.activity(RNA.tpm = gene.tpm.pre, remove.genes.ICB_proxies=TRUE)
-    
-    # ****************
-    # Immune cells fractions (ouput matrix [sample, Immunecells])
-    immunecells <- data.frame(t(cell_fractions.pre))
-    
-    # ****************
-    # LRpairs (ouput matrix [sample, LRpairs])
-    LRpairs <- data.frame(t(LRpairs.pre))
-    
-    # ****************
-    # CYTOKINEpairs (ouput matrix [sample, LRpairs])
-    CYTOKINEpairs <- data.frame(t(CYTOKINEpairs.pre))
-    
-    # Remove NA values in  LRpairs and CYTOKINE pairs
-    LR_sum <- apply(LRpairs,2, sum)
-    remove_NA_LR_pairs <- as.numeric(na.action(na.omit(LR_sum)))
-    LRpairs <- LRpairs[,-remove_NA_LR_pairs]
-    Cyt_sum <- apply(CYTOKINEpairs,2, sum)
-    remove_NA_Cyt_pairs <- as.numeric(na.action(na.omit(Cyt_sum)))
-    CYTOKINEpairs <- CYTOKINEpairs[,-remove_NA_Cyt_pairs]
-    
-    # ****************
-    # data
-    DataViews.test[[dataset]] <- list(pathways = data.frame(Pathway_activities),
-                                      immunecells = immunecells, 
-                                      TFs = data.frame(TF_activities$scores),
-                                      LRpairs = LRpairs,
-                                      CYTOKINEpairs = CYTOKINEpairs,
-                                      transcript = data.frame(log2(t(gene.tpm.pre)+1)))
+    # # ****************
+    # # Computation of pathways scores (input matrix [genes, samples], ouput matrix [sample, pathways])
+    # Pathway_activities <- compute.pathways.scores(RNA.raw_counts = gene.count.pre, remove.genes.ICB_proxies=TRUE)
+    # 
+    # # ****************
+    # # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
+    # TF_activities <- compute.TF.activity(RNA.tpm = gene.tpm.pre, remove.genes.ICB_proxies=TRUE)
+    # 
+    # # ****************
+    # # Immune cells fractions (ouput matrix [sample, Immunecells])
+    # immunecells <- data.frame(t(cell_fractions.pre))
+    # 
+    # # ****************
+    # # Computaiton of L-R and cytokine pairs (ouput matrix [sample, LRpairs])
+    # LRpairs.data <- compute.LR.pairs(RNA.tpm = gene.tpm.pre, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
+    # 
+    # LRpairs <- as.data.frame(LRpairs.data$LRpairs)
+    # CYTOKINEpairs <- data.frame(LRpairs.data$CYTOKINEpairs)
+    # 
+    # # Remove NA values in  LRpairs and CYTOKINE pairs
+    # LR_sum <- apply(LRpairs,2, sum)
+    # remove_NA_LR_pairs <- as.numeric(na.action(na.omit(LR_sum)))
+    # LRpairs <- LRpairs[,-remove_NA_LR_pairs]
+    # Cyt_sum <- apply(CYTOKINEpairs,2, sum)
+    # remove_NA_Cyt_pairs <- as.numeric(na.action(na.omit(Cyt_sum)))
+    # CYTOKINEpairs <- CYTOKINEpairs[,-remove_NA_Cyt_pairs]
+    # 
+    # # ****************
+    # # data
+    # DataViews.test[[dataset]] <- list(pathways = data.frame(Pathway_activities),
+    #                                   immunecells = immunecells, 
+    #                                   TFs = data.frame(TF_activities$scores),
+    #                                   LRpairs = LRpairs,
+    #                                   CYTOKINEpairs = CYTOKINEpairs,
+    #                                   transcript = data.frame(log2(t(gene.tpm.pre)+1)))
     
     Labels.test[[dataset]] <- label.pre
   
-  return(DataViews.test)
+  return(Labels.test)
     
 }))
 
-# All.DataViews.test <- DataViews.test
-# All.Labels.test <- Labels.test
+All.DataViews.test <- DataViews.test
+All.Labels.test <- Labels.test
 # save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
 # save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
 

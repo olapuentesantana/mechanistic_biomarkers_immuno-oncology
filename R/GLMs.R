@@ -20,6 +20,7 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
   source("./R/civalue.R")
   source("./R/GLMs/elastic_net_test.R")
   source("./R/GLMs/elastic_net_train.R")
+  source("./R/GLMs/log_elastic_net_test.R")
   
   # ****************
   # General variables:
@@ -37,8 +38,8 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
   # ****************
   # Initialize variables
   names_view <- names(view_combination) # Need data type 
-  MSE <- SpCorr <- PeCorr <- CI <- coef_values <- x.train <- hyperparameter_values <- freq_values <- vector("list", length = Ndrug)
-  names(MSE) <- names(SpCorr) <- names(PeCorr) <- names(CI) <- names(coef_values) <- names(x.train) <- names(hyperparameter_values) <- names(freq_values) <- names(drug_source)
+  MSE <- SpCorr <- PeCorr <- CI <- MR <- coef_values <- x.train <- hyperparameter_values <- freq_values <- vector("list", length = Ndrug)
+  names(MSE) <- names(SpCorr) <- names(PeCorr) <- names(CI) <- names(MR) <- names(coef_values) <- names(x.train) <- names(hyperparameter_values) <- names(freq_values) <- names(drug_source)
   
   # When combining data sets:
   name = NULL
@@ -70,8 +71,8 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
     prediction.X <- views_source.comb[prediction_indices,]
     
     # separate output data in learning and prediction
-    learning.Y <- drug_source[learning_indices, ii]
-    validation.Y <- drug_source[prediction_indices, ii]
+    learning.Y <- drug_source[learning_indices, ii, drop = FALSE]
+    validation.Y <- drug_source[prediction_indices, ii, drop = FALSE]
     
     if (standardize_any==T){
       
@@ -93,7 +94,8 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
       cat("input data normalization done","\n")
       
       # drug response standardization
-      
+      if (o != "label"){
+        
       if(length(nan_indices_patients_learning) != 0) learning.Y <- learning.Y[-nan_indices_patients_learning]
       if(length(nan_indices_patients_prediction) != 0) validation.Y <- validation.Y[-nan_indices_patients_prediction]
       
@@ -103,6 +105,7 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
       learning.Y = sweep(as.matrix(learning.Y), 2, mas.mea.learning.Y[[o]], FUN = "-")
       validation.Y = sweep(as.matrix(validation.Y),2, mas.mea.learning.Y[[o]], FUN = "-")
       
+      }
       if (standardize_response == T){
         
         mas.std.learning.Y[[o]]= colSds(as.matrix(learning.Y), na.rm = T)
@@ -110,9 +113,9 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
         
         learning.Y = sweep(as.matrix(learning.Y),2, mas.std.learning.Y[[o]], FUN = "/") 
         validation.Y = sweep(as.matrix(validation.Y),2, mas.std.learning.Y[[o]], FUN = "/")
+        
+        cat("output data normalization done","\n")
       }
-      
-      cat("output data normalization done","\n")
       
     }else{
       
@@ -129,6 +132,7 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
       cat("careful: data are assumed to be already normalized (if that is not the case set standardize_any=T)","\n")
     }
     # Hyperparameters estimation
+    if (o != "label"){
     state <- elastic_net_train(drug_source = learning.Y,
                                views_source = learning.X,
                                family = view_combination[[1]],
@@ -136,6 +140,17 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
                                measure_type = "mse",
                                parameters = parameters,
                                parallelize = T, iteration = iteration)
+    } else{
+      
+      state <- elastic_net_train(drug_source = learning.Y,
+                                 views_source = learning.X,
+                                 family = view_combination[[1]],
+                                 view_combination = names_view,
+                                 measure_type = "class",
+                                 parameters = parameters,
+                                 parallelize = T, iteration = iteration)
+      
+    }
 
     coef_values[[o]]<- state$cv.glmnet.features
     hyperparameter_values[[o]] <- state$cv.glmnet.hyperparameters
@@ -143,18 +158,25 @@ GLMs <- function(drug_source, views_source, view_combination, learning_indices, 
     cat("training performed","\n")
     
     # perform prediction
-    
-    prediction_cv <- lapply(names(coef_values[[o]]), function(X){elastic_net_test(prediction.X, coef_values[[o]][[X]])})
+    if (o != "label"){
+      prediction_cv <- lapply(names(coef_values[[o]]), function(X){elastic_net_test(prediction.X, coef_values[[o]][[X]])})
+      MSE[[o]] <- lapply(prediction_cv, function(X){apply((validation.Y - X)^2, 2, mean)})
+      SpCorr[[o]]  <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "spearman"))})
+      PeCorr[[o]]  <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "pearson"))})
+      CI[[o]] <-   lapply(prediction_cv, function(X){civalue(validation.Y, X)})
+      names(MSE[[o]]) <- names(SpCorr[[o]]) <- names(PeCorr[[o]]) <- names(CI[[o]]) <- names(coef_values[[o]])
+      performances <- list(MSE=MSE, SpCorr=SpCorr, PeCorr=PeCorr, CI=CI)
+      
+    }else{
+      prediction_cv <- lapply(names(coef_values[[o]]), function(X){log_elastic_net_test(prediction.X, coef_values[[o]][[X]])})
+      CI[[o]] <- lapply(prediction_cv, function(X){civalue(validation.Y, X)})
+      MR[[o]] <- lapply(prediction_cv, function(X){table(X, validation.Y$label)[1]/length(validation.Y$label)})
+      names(MR[[o]]) <- names(CI[[o]]) <- names(coef_values[[o]])
+      performances <- list(MR=MR, CI=CI)
+      
+    }
     cat("prediction computed","\n")
-    
-    MSE[[o]] <- lapply(prediction_cv, function(X){apply((validation.Y - X)^2, 2, mean)})
-    SpCorr[[o]]  <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "spearman"))})
-    PeCorr[[o]]  <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "pearson"))})
-    CI[[o]] <-   lapply(prediction_cv, function(X){civalue(validation.Y, X)})
-    
-    names(MSE[[o]]) <- names(SpCorr[[o]]) <- names(PeCorr[[o]]) <- names(CI[[o]]) <- names(coef_values[[o]])
-    
-    performances <- list(MSE=MSE, SpCorr=SpCorr, PeCorr=PeCorr, CI=CI)
+
     model <- list(Coef=coef_values, hyperparameters=hyperparameter_values, freq_features=freq_values)
   }
   

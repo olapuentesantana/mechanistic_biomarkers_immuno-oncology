@@ -61,7 +61,7 @@ views <- c(pathways = 'gaussian', #1
 # view_combinations <- list(views[4], views[1], views[c(1,3)], views[3],views[c(3,6)])
 
 # Pathways, immune cells
-view_combinations <- list(views[1], views[3], views[c(1,3)])
+view_combinations <- list(views[1], views[3], views[c(1,3)], views[8], views[5])
 
 # All: comparison
 # view_combinations <- list(views[c(1,3)], views[1], views[3], views[4], views[7], views[5])
@@ -75,15 +75,16 @@ view_combinations <- list(views[1], views[3], views[c(1,3)])
 summary_view_all <- NULL
 algorithms <- c("Multi_Task_EN")
 # algorithms <- c("L21")
-analysis <- c("all")
+analysis <- c("all", "cor")
 
 #for (Cancer in PanCancer.names){
   Cancer = "SKCM"
   # load(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/data/PanCancer/",Cancer,"/new/DataViews_no_filter_", Cancer,".RData"))
-  load(paste0("../data/PanCancer/", Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))
+  # load(paste0("../data/PanCancer/", Cancer,"/new_remove_all_genes/DataViews_no_filter_", Cancer,".RData"))
+  load(paste0("../data/BIM_cluster_presentation/","DataViews_no_filter_", Cancer,".RData"))
   
   # file <- dir(paste0("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop/output/new/",Cancer), full.names = T, recursive = F)
-  file <- dir(path = paste0("../output/new_remove_all_genes/",Cancer), pattern = "all_cv_res_", full.names = T, recursive = F)
+  file <- dir(path = paste0("../output/BIM_cluster_presentation"), pattern = "all_cv_res_", full.names = T, recursive = F)
   
   summary_analysis <- do.call(rbind, lapply(analysis, function(anal){
 
@@ -174,6 +175,8 @@ summary_view_all$CancerType <- factor(summary_view_all$CancerType)
 summary_view_all$cv <- factor(summary_view_all$cv, levels = c("min.mse", "1se.mse"))
 summary_view_all$metric <- factor(summary_view_all$metric, levels = c("MSE", "PeCorr", "SpCorr", "CI"))
 summary_view_all$AnalysisType <- factor(summary_view_all$AnalysisType)
+summary_view_all$task <- factor(summary_view_all$task, levels = c("CYT", "IS", "IPS", "IMPRES", "RohIS", "chemokine", "IS_Davoli", "Proliferation", "IFny", "ExpandedImmune", 
+                                                                  "T_cell_inflamed", "MSI", "TIDE", "common_median"))
 
 # summary_view_all.SpCorr$Analysis_Alg <- paste0(summary_view_all.SpCorr$algorithm,"_",
 #                                                summary_view_all.SpCorr$AnalysisType)
@@ -187,12 +190,12 @@ summary_view_all$AnalysisType <- factor(summary_view_all$AnalysisType)
 colors.cancer_types <- toupper("#dcc666")
 names(colors.cancer_types) <- levels(summary_view_all$CancerType)
 
-colors.DataType <- toupper(c("#8c9f3e","#b65cbf","#4eac7c")) #,"#c95574","#747fca","#ca743e"))
+colors.DataType <- toupper(c("#c85878","#59aa54","#b65ebd","#999a3e","#6f7dcb"))# "#cc5136", "#45b0a4","#c88645"))
 names(colors.DataType) <- levels(summary_view_all$DataType)
 
 colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf4740", "#4bafd0",
-                          "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671"))
-# names(colors.tasks) <- levels(summary_view_all.SpCorr$task)
+                          "#dc7b31","#6776cb","#c1ad46","#b975b1","#6c7b33","#c26671", "salmon"))
+names(colors.tasks) <- levels(summary_view_all$task)
 
 # colors.algorithm <- toupper(c("#ff7433","#853760"))
 # names(colors.algorithm) <- levels(summary_view_all.SpCorr$algorithm)
@@ -213,11 +216,12 @@ colors.tasks <- toupper(c("#b47645","#ad58c5","#6cb643","#d24787","#52ad7b","#cf
 # sapply(names(colors.tasks), function(ImmuneResponse){
 #   
 # summary_view_all.SpCorr.task <- subset(summary_view_all.SpCorr, task %in% c("consensus_all", "consensus_top", "common_all", "common_top"))
-summary_view_all.SpCorr_1se.mse <- subset(summary_view_all, metric == "SpCorr" & cv == "1se.mse" & task == "common_median")
+summary_view_all.SpCorr_1se.mse <- subset(summary_view_all, metric == "SpCorr" & cv == "1se.mse" & DataType %in% c("pathways", "immunecells", "pathways_immunecells", "transcript")
+                                          & task == "common_median" & AnalysisType == "cor")
 summary_view_all.SpCorr_1se.mse$task <- factor(summary_view_all.SpCorr_1se.mse$task)
 
 ggplot(summary_view_all.SpCorr_1se.mse, aes(x = DataType, y = perf_min, fill = DataType,
-                                            colour = DataType, alpha = task)) +
+                                            colour = DataType)) + #alpha = AnalysisType)) +
     geom_boxplot() +
     scale_fill_manual(name = "Mechanistic signature",
                       labels = levels(summary_view_all.SpCorr_1se.mse$DataType),
@@ -225,29 +229,28 @@ ggplot(summary_view_all.SpCorr_1se.mse, aes(x = DataType, y = perf_min, fill = D
     scale_color_manual(name = "Mechanistic signature",
                        labels = levels(summary_view_all.SpCorr_1se.mse$DataType),
                        values = colors.DataType) +
-    scale_alpha_manual(name = "cv-Task",
-                     labels = levels(summary_view_all.SpCorr_1se.mse$task),
-                     values = c(0.93,0.4,0.4,0.4,0.4,0.4,0.4,0.4), guide = F) +
+    # scale_alpha_manual(name = "Analysis",
+    #                  labels = levels(summary_view_all.SpCorr_1se.mse$AnalysisType),
+    #                  values = c(0.93,0.4)) +
     theme_minimal() +
-    ylim(c(0.5,1)) +
-    coord_fixed(ratio = 2.2) +
+    ylim(c(0.7,1)) +
+    #coord_fixed(ratio = 5)+
     # facet_grid(.~ cv) +
     scale_x_discrete(labels = c("immunecells"= "ImmuneCells",
                                 # "LRpairs"= "L-R pairs",
+                                "CYTOKINEpairs"= "Cytokine pairs",
                                 "pathways"="Pathways",
-                                "pathways_immunecells"="Pathways \n + \n Immunecells"))+
+                                "pathways_immunecells"="Pathways \n + \n Immunecells",
                                 # "TFs" = "TFs",
-                                # "transcript" = "Transcriptomics")) +
-    theme(axis.text.x = element_text(size=14,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_text(size=14,face="bold"),
-          axis.text.y = element_text(size=14,face="bold"), axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
-          axis.title.y = element_text(size=14,face="bold",vjust = 0.9), strip.background = element_blank(), 
-          legend.position = "none") +
+                                "transcript" = "Transcriptomics")) +
+    theme(axis.text.x = element_text(size=20,face="bold", angle = 45, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
+          axis.text.y = element_text(size=20,face="bold"),
+          axis.title.y = element_blank(), legend.position = "none")
           # legend.text=element_text(size=9), legend.title = element_text(size = 10, face="bold", vjust = 0.5),
           # panel.border = element_blank(), panel.background = element_blank(), axis.line = element_line(size=0.5, colour = "black")) +
-    labs(y = "Spearman Correlation", x = "Mechanistic Signatures") + 
-    ggtitle(paste0("Common-median performance during cross-validation with 100 iterations (min.mse + 1SE model)"))
+    #ggtitle(paste0("Common-median performance (cv - 100 iterations)"))
   
-  ggsave(paste0("../figures/BIM_cluster_presentation/EN_mechanistic_signatures_mgaussian_performance_SpCorr_1SE_MSE_SKCM.pdf"), width = 12, height = 12)
+  ggsave(paste0("../figures/BIM_cluster_presentation/EN_mgaussian_pathways_immunecells_with_transcriptomics_training_performance_SpCorr_1SE_MSE_SKCM.pdf"), width = 8, height = 8)
   # ggsave(paste0("../figures/Federica_presentation_colab/PROGENy_updated/EN_mechanistic_signatures_perfomance_consensus_common_across_all_and_top_tasks.pdf"),
   #        width = 12, height = 12)
   
