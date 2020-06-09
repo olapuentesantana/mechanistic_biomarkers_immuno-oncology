@@ -98,6 +98,6 @@ ICB.proxies.genes <- list(CYT = c("GZMA", "PRF1"),
                                 T_cell_inflamed = T_cell_inflamed_Ayers_read,
                                 TIDE = NULL,
                                 MSI = MSI_read)
-save(ICB.proxies.genes, file = "data/list_each_ICB_proxy_with_involved_genes.RData")
+# save(ICB.proxies.genes, file = "data/list_each_ICB_proxy_with_involved_genes.RData")
 
 

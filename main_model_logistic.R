@@ -1,5 +1,5 @@
 # #########################################################################################################
-# Script to apply multi-task learning as trial
+# Script to logistic regression on validation data
 # #########################################################################################################
 
 # ****************
@@ -16,24 +16,14 @@ library(matrixStats)
 source("./R/cross_validation_multi-task.R")
 
 # ****************
-# Select cancer type
-load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData")
-# load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData")
-# load("./analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData")
-PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
-#PanCancer.names.some <- PanCancer.names[3:length(PanCancer.names)]
+# Select validation dataset 
+load(paste0("./data/Validation/All_DataViews_test_pre.RData"))
+load(paste0("./data/Validation/All_Labels_test_pre.RData"))
+Datasets.names <- names(All.DataViews.test)
+names(Datasets.names) <- c("SKCM", "SKCM", "SKCM", "STAD", "SKCM", "SKCM", "GBM", "SKCM", "SKCM")
 
 # ****************
 # views
-# views <- c(pathways = 'gaussian', #1
-#            Protall = 'gaussian', #2
-#            immunecells = 'gaussian', #3
-#            TFs = 'gaussian', #4
-#            transcript = 'gaussian', #5
-#            sTIL = 'gaussian', #6
-#            LRpairs = 'gaussian', #7
-#            CYTOKINEpairs = 'gaussian')  #8) 
-
 views <- c(pathways = 'binomial', #1
            Protall = 'binomial', #2
            immunecells = 'binomial', #3
@@ -52,42 +42,19 @@ load("./data/parameters_4_all.RData")
 
 # ****************
 #input_algorithm = names(parameters)
-input_algorithm <- c("Multi_Task_EN")
-filter_tasks <- c("IPS","IMPRES", "Proliferation", "TIDE", "MSI","chemokine")
+input_algorithm <- c("Logistic_EN")
 
-for (Cancer in PanCancer.names){
-  Cancer = "SKCM"
-  # load(paste0("./data/PanCancer/",Cancer,"/new/DataViews_filter_Spat_", Cancer,".RData"))
-  # load(paste0("./data/PanCancer/",Cancer,"/new/ImmuneResponse_filter_Spat_", Cancer,"_matrix_format.RData"))
+for (dataset in Datasets.names){
   
-  load(paste0("./data/BIM_cluster_presentation/","DataViews_no_filter_", Cancer,".RData"))
-  load(paste0("./data/BIM_cluster_presentation/","ImmuneResponse_no_filter_", Cancer,"_matrix_format.RData"))
-  
-  # # Logistic regression on validation dataset
-  # load(paste0("./data/Validation/All_DataViews_test_pre.RData"))
-  # load(paste0("./data/Validation/All_Labels_test_pre.RData"))
-  # 
-  # DataViews.no_filter <- All.DataViews.test[["comb.Gide_Auslander"]]
-  # ImmuneResponse.no_filter <- All.Labels.test[["comb.Gide_Auslander"]]
-  # rownames(ImmuneResponse.no_filter) <- ImmuneResponse.no_filter$Sample
-  # ImmuneResponse.no_filter <- ImmuneResponse.no_filter[,-1, drop = FALSE]
-  # 
-  # ImmuneResponse.no_filter$label <- gsub(" ","", ImmuneResponse.no_filter$label)
-  # ImmuneResponse.no_filter$label <- gsub("CR|PR|MR|PRCR","R", ImmuneResponse.no_filter$label)
-  # ImmuneResponse.no_filter$label <- gsub("SD|PD|PD ","NR", ImmuneResponse.no_filter$label)
-  # ImmuneResponse.no_filter$label <- factor(ImmuneResponse.no_filter$label, levels = c("NR", "R"))
-  
-  # Multi-gaussian regression on validation dataset
-  ImmuneResponse.no_filter <- ImmuneResponse.no_filter[, -which(colnames(ImmuneResponse.no_filter) %in% filter_tasks)]
-  
-  # sTIL_sum <- apply(DataViews.filter_Spat$sTIL,1, sum)
-  # 
-  # if(anyNA(sTIL_sum)){
-  #   remove_NA_sTIL <- as.numeric(na.action(na.omit(sTIL_sum)))
-  #   DataViews.filter_Spat$sTIL <- DataViews.filter_Spat$sTIL[-remove_NA_sTIL,]
-  #   DataViews.filter_Spat$immunecells <- DataViews.filter_Spat$immunecells[-remove_NA_sTIL,]
-  #   
-  # }
+  DataViews.no_filter <- All.DataViews.test[["comb.Gide_Auslander"]]
+  ImmuneResponse.no_filter <- All.Labels.test[["comb.Gide_Auslander"]]
+  rownames(ImmuneResponse.no_filter) <- ImmuneResponse.no_filter$Sample
+  ImmuneResponse.no_filter <- ImmuneResponse.no_filter[,-1, drop = FALSE]
+
+  ImmuneResponse.no_filter$label <- gsub(" ","", ImmuneResponse.no_filter$label)
+  ImmuneResponse.no_filter$label <- gsub("CR|PR|MR|PRCR","R", ImmuneResponse.no_filter$label)
+  ImmuneResponse.no_filter$label <- gsub("SD|PD|PD ","NR", ImmuneResponse.no_filter$label)
+  ImmuneResponse.no_filter$label <- factor(ImmuneResponse.no_filter$label, levels = c("NR", "R"))
 
   # Remove NA values in Dataviews LRpairs and CYTOKINE pairs
   if (anyNA(DataViews.no_filter$LRpairs)){
@@ -100,13 +67,6 @@ for (Cancer in PanCancer.names){
     DataViews.no_filter$CYTOKINEpairs <- DataViews.no_filter$CYTOKINEpairs[,-remove_NA_Cyt_pairs]
     
   }
-  # Remove 0 variance features 
-  
-  # Consensus define as mean betweeen both responses. Used just for testing
-  # ImmuneResponse$consensus <- apply(scale(ImmuneResponse[,1:2]),1,mean)
-  # Remove IPS and IMPRES
-  #ImmuneResponse$IPS <- NULL
-  #ImmuneResponse$impres <- NULL
   
   sapply(1:length(view_combinations), function(X) {
     
@@ -147,6 +107,6 @@ for (Cancer in PanCancer.names){
   })
   
 }
- 
 
-   
+
+

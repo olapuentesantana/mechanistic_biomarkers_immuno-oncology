@@ -638,4 +638,104 @@ gold.standards.curve<- do.call(c,lapply(list.gold.standards, function(X){
 #     })
 #   })
 # })
+###################
+# Patient score
+###################
+            
+All.scores <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
+  cat("Cancer:",Cancer, "\n")
+  # check data type is available for validation data
+  filter.cancer <- which(names(Datasets.names) == Cancer) 
+  filter.cancer <- 9
+  All.scores <- do.call(rbind, lapply(Datasets.names[filter.cancer], function(dataset){
+    cat("Dataset:",dataset, "\n")
+    All.scores <- do.call(rbind, lapply(names(alpha.analysis_alg), function(anal){
+      cat("Analysis:",anal, "\n")
+      All.scores <- do.call(rbind, lapply(names(colors.DataType), function(view){
+        cat("View:",view, "\n")
+        All.scores <- do.call(rbind, lapply(filter.analysis.alg[[anal]], function(algorithm){ 
+          cat("Algorithm:",algorithm, "\n")
+          All.scores <- do.call(rbind, lapply(filter.analysis.task[[anal]], function(task){
+            
+            df <- predictions_immune_response[[Cancer]][[dataset]][[anal]][[view]][[algorithm]][["pred"]][[task]][["1se.mse"]][[view]]
+            label <- predictions_immune_response[[Cancer]][[dataset]][[anal]][[view]][[algorithm]][["lab"]][[task]][[view]]
+            
+            All.scores <- do.call(rbind, lapply(rownames(df), function(patient){
+            
+              df.patient <- df[patient,]
+              label.patient <- label[patient,]
+              
+              All.scores <- data.frame(Cancer = Cancer,
+                                   Dataset = dataset,
+                                   Analysis = anal,
+                                   View = view, 
+                                   Model = algorithm,
+                                   cv_model = "1se.mse",
+                                   Task = task,
+                                   iteration = seq(1,100),
+                                   patient = patient,
+                                   label = label.patient,
+                                   pred = df.patient)
+            }))
+            return(All.scores)
+          }))
+          return(All.scores)
+        }))
+        return(All.scores)
+      }))
+      return(All.scores)
+    }))
+    return(All.scores)
+  }))
+  return(All.scores)
+}))
 
+All.scores.view <- subset(All.scores, View == "pathways_immunecells" & Analysis == "cor")
+
+# All.scores.view$Task <- factor(All.scores.view$Task, levels = c("CYT", "IS", "IPS", "IMPRES", "RohIS", "chemokine", "IS_Davoli", "Proliferation", "IFny", "ExpandedImmune", 
+#                                                                   "T_cell_inflamed", "MSI", "TIDE", "common_median"))
+
+All.scores.view$Task <- factor(All.scores.view$Task, levels = c("CYT", "IS","RohIS", "IS_Davoli", "IFny", "ExpandedImmune", 
+                                                                "T_cell_inflamed"))
+median_pred <- aggregate(pred ~ patient + Task, 
+                                     FUN = "median", na.rm = T, data = All.scores.view)
+
+colors.patients <-  predictions_immune_response[[Cancer]][[dataset]][[anal]][[view]][[algorithm]][["lab"]][[task]][[view]][,1]
+colors.patients <- gsub("NR","red", colors.patients)
+colors.patients <- gsub("R","blue", colors.patients)
+
+# Choose three patients: "SRR7344575", "SRR7344574", "SRR7344567"
+median_pred.three.patients <- subset(median_pred, patient %in% c("SRR7344575", "SRR7344574", "SRR7344546"))
+median_pred.tasks <- aggregate(pred ~ patient, FUN = "median", na.rm = T, data = median_pred)
+
+order.patients <- median_pred.tasks$patient[order(abs(median_pred.tasks$pred), decreasing = TRUE)]
+
+median_pred$patient <- factor(median_pred$patient, levels = order.patients)
+colors.patients <- colors.patients[order.patients]
+
+ggplot2::ggplot(median_pred, aes(x=pred, y=patient, fill = Task, color = Task)) +
+  ggplot2::geom_point(size = 3) +
+  ggplot2::scale_fill_manual(name = "Task",
+                             labels = levels(All.scores.view$Task),
+                             values = as.character(colors.tasks)) +
+  ggplot2::scale_color_manual(name = "Task",
+                              labels = levels(All.scores.view$Task),
+                              values = as.character(colors.tasks)) +
+  # ggplot2::scale_alpha_manual(name = "Analysis",
+  #                             labels = levels(tmp.barplot$Analysis),
+  #                             values = c(1,0.5))  +
+  # ggplot2::theme_linedraw() +
+  #ggplot2::xlim(-1, 1) +
+  theme(axis.text.x = element_text(size=18,face="bold", angle = 0, vjust = 0.5, hjust=0.5), axis.title.x = element_blank(),
+        axis.text.y = element_text(size=10, colour = colors.patients), axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(), panel.background = element_rect(fill = "white"),
+        legend.position = "right", legend.direction = "vertical", panel.grid.major.y = element_line(colour = "black"),
+        legend.text=element_text(size=16), legend.title = element_text(size = 16, face="bold", vjust = 0.5)) +
+  labs(x = "prediction", y = "patients")
+
+ggsave(paste0("../figures/BIM_cluster_presentation/patient_score_comb_gide_auslander_pathways_immunecells.pdf"), width = 12, height = 12)
+
+                        
+                        
+                        
+                  
