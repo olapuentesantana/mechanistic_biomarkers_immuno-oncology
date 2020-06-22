@@ -39,30 +39,6 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
   gene_expr <- log2(RNA.tpm + 1)
   genes <- rownames(gene_expr)
   
-  # Rows with non-valid HGNC symbols were removed.
-  if (any(grep("\\?",genes))) {
-    gene_expr <- gene_expr[-grep("?",rownames(gene_expr), fixed = T),]
-    genes <- rownames(gene_expr)
-  }
-  if (any(grep("\\|",genes))) {
-    genes <- sapply(strsplit(rownames(gene_expr),"\\|"),function(X) return(X[1]))
-  }
-  
-  # Rows corresponding to the same HGNC symbol were averaged.
-  if(anyDuplicated(genes) != 0){
-    idx <- which(duplicated(genes) == TRUE)
-    dup_genes <- genes[idx]
-    for (ii in dup_genes){
-      gene_expr[which(genes %in% ii)[1],] <- colMeans(gene_expr[which(genes %in% ii),])
-      gene_expr <- gene_expr[-which(genes %in% ii)[2],]
-      genes <- genes[-which(genes %in% ii)[2]]
-    }
-    rownames(gene_expr) <- genes 
-  }
-
-  # # We need approved gene symbols
-  # genes_updated <- UpdateSymbolList(symbols = genes)
-  
   # Genes to remove according to all ICB proxy's 
   if (remove.genes.ICB_proxies) {
     cat("Removing signatures genes for proxy's of ICB response:  \n")
@@ -73,7 +49,6 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
   gene_expr <- as.data.frame(gene_expr)
   
   # Compute L-R pairs 
-  cat("Computing L-R pairs:  \n")
   LR.pairs.computed <- do.call(rbind, lapply(1:length(LR.pairs_network), function(x){
     ligand <- sapply(strsplit(LR.pairs_network[x], split = "_", fixed = TRUE), head, 1)
     receptor <- sapply(strsplit(LR.pairs_network[x], split = "_", fixed = TRUE), tail, 1)
@@ -82,13 +57,15 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
   colnames(LR.pairs.computed) <- colnames(gene_expr)
   LR.pairs.computed <- t(LR.pairs.computed)
   colnames(LR.pairs.computed) <- LR.pairs_network
+  cat("L-R pairs computed \n")
   
   # Compute cytokine pairs 
   if (compute.cytokines.pairs) {
-    cat("Computing Cytokine pairs:  \n")
     idy <- na.exclude(match(CYTOKINE.pairs_subnetwork, colnames(LR.pairs.computed)))
     CYTOKINE.pairs.computed <- LR.pairs.computed[,idy]
   }
+  cat("Cytokine pairs computed \n")
+  
   Ligand.Receptor.data <- list(LRpairs = LR.pairs.computed, CYTOKINEpairs = CYTOKINE.pairs.computed)
   return(Ligand.Receptor.data)
 }

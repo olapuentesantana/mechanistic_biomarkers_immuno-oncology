@@ -1,5 +1,6 @@
 data/data_processed_TIDE/
 data/PanCancer/
+data/PanCancer_draft_v1/
 data/Inter-cellular_networks_Maisa/
 data/RNAdata_Maisa/
 data/raw_data_tcga/
@@ -7,11 +8,18 @@ data/Validation/
 data/all_genes_ICB_proxies.RData
 data/model_human_full.rda
 data/LR.pairs.Ramilowski.RData
+data/gene_names_updated_LRpairs.RData
+data/gene_names_updated_pathways.RData
+data/gene_names_updated_tcga.RData
+data/gene_names_updated_tfs.RData
+data/list_top100pathways_responsive_genes.RData
 data/Federica_presentation_colab
 data/Ligand_Receptors_Rdata/
 data/BIM_cluster_presentation
-R/Lung_different_biopsies.zip
-R/Lung_different_biopsies
+data/Lung_different_biopsies/
+data/multi_symbol_checker/
+data/IPS_genes.RData
+R/Lung_different_biopsies/
 output/
 analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData
 analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData

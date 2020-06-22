@@ -35,47 +35,22 @@ compute.pathways.scores <- function(RNA.raw_counts, remove.genes.ICB_proxies=TRU
   # data 
   # Genes to remove according to ICB proxies genes
   load("../data/all_genes_ICB_proxies.RData")
-  # The human  matrix consists of 14 pathways that accounts for the importance of each gene on each pathway upon perturbation. 
-  # load("../data/model_human_full.rda")
-  # pathway_responsive_genes <- as.character(unique(model_human_full$gene))
-  # MAPK_pathway <- subset(model_human_full, pathway == "MAPK")
-  # MAPK_pathway <- MAPK_pathway[which(MAPK_pathway$p.value %in% sort(MAPK_pathway$p.value, decreasing = FALSE)[1:100]),]
+  load("../data/gene_names_updated_pathways.RData")
+  pathway_responsive_genes <- unique(gene.names_pathways$Input)
   
   raw_counts <- RNA.raw_counts
   genes <- rownames(raw_counts)
-
-  # Rows with non-valid HGNC symbols were removed.
-  if (any(grep("\\?",genes))) {
-    raw_counts <- raw_counts[-grep("?",rownames(raw_counts), fixed = T),]
-    genes <- rownames(raw_counts)
-  }
-  if (any(grep("\\|",genes))) {
-    genes <- sapply(strsplit(rownames(raw_counts),"\\|"),function(X) return(X[1]))
-  }
-
-  # Rows corresponding to the same HGNC symbol were averaged.
-  if(anyDuplicated(genes) != 0){
-    idx <- which(duplicated(genes) == TRUE)
-    dup_genes <- genes[idx]
-    for (ii in dup_genes){
-      raw_counts[which(genes %in% ii)[1],] <- colMeans(raw_counts[which(genes %in% ii),])
-      raw_counts <- raw_counts[-which(genes %in% ii)[2],]
-      genes <- genes[-which(genes %in% ii)[2]]
-    }
-    rownames(raw_counts) <- genes 
-  }
   
   # Remove list of genes used to build proxy's of ICB response
   if (remove.genes.ICB_proxies) {
-    cat("Removing signatures genes for proxy's of ICB response:  \n")
+    message("Removing signatures genes for proxy's of ICB response:  \n")
     idy <- na.exclude(match(all_genes_to_remove, rownames(raw_counts)))
     raw_counts <- raw_counts[-idy,]
   }
   
   # Integers are required for "DESeq2"
-  if (any(sapply(raw_counts,is.integer) == FALSE)) {
-    raw_counts.integer <- as.matrix(raw_counts)
-    mode(raw_counts.integer[,as.vector(which(sapply(raw_counts,is.integer) == FALSE))]) <- "integer"
+  if (is.integer(raw_counts) == FALSE) {
+    raw_counts.integer <- apply(raw_counts,2,as.integer)
     rownames(raw_counts.integer) <- rownames(raw_counts)
   } else{
     raw_counts.integer <- raw_counts
@@ -100,19 +75,17 @@ compute.pathways.scores <- function(RNA.raw_counts, remove.genes.ICB_proxies=TRU
   # HGNC symbols are required
   try(if (any(grep("ENSG00000", rownames(gene_expr)))) stop("hgnc gene symbols are required", call. = FALSE))
 
-  # # Matching transcript names with pathway responsive genes
-  # genes_kept <- intersect(rownames(gene_expr), MAPK_pathway$gene)
-  # genes_left <- setdiff(pathway_responsive_genes, rownames(gene_expr))
-  # 
-  cat("To compute pathway scores:  \n")
-  # cat("Transcripts available: ",length(genes_kept),"\n")
-  # cat("Transcripts missing: ", length(genes_left),"\n")
-
   # Pathways activity (Progeny package)
   Pathway_scores <- progeny(gene_expr, scale = FALSE, organism = "Human", verbose = TRUE)
 
+  # check what is the percentage of genes we have in our data
+  genes_kept <- intersect(rownames(gene_expr), pathway_responsive_genes)
+  genes_left <- setdiff(pathway_responsive_genes, rownames(gene_expr))
+  
   # Output list:
-  # Pathways <- list(scores = Pathway_scores, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))
+  Pathways <- list(scores = Pathway_scores, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))
 
-  return(Pathway_scores)
+  message("Pathway scores computed \n")
+  
+  return(Pathways)
 }

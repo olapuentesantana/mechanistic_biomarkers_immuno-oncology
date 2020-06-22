@@ -4,7 +4,7 @@
 # signature scores were calculated by averaging of the included genes for the IFN-γ
 ###########################################################################################
 
-ObtainIFnyAyers <- function(gene_expr){
+ObtainIFnyAyers <- function(gene.tpm){
   
   # ************
   # Literature info: cytolytic markers, IFNy 6-genes signature (Ayers):
@@ -12,24 +12,24 @@ ObtainIFnyAyers <- function(gene_expr){
   
   # ***************
   # Gene expression data just for IFNy signature (Ayers)
-  match_genes <- na.omit(match(IFNy_Ayers_read, rownames(gene_expr)))
-  tmp.gene_expr <- gene_expr[match_genes, ]
-  
+  match_genes <- match(IFNy_Ayers_read, rownames(gene.tpm))
+
   if (anyNA(match_genes)){
-    warning("Be careful, some genes are missing")
-    cat("MISSING GENES", "\n") 
-    cat(!which(IFNy_Ayers_read %in% rownames(gene_expr)))
+    warning(paste0("differenty named or missing signature genes : \n", IFNy_Ayers_read[!IFNy_Ayers_read %in% rownames(gene.tpm)]))
+    match_genes <- na.omit(match_genes)
   }
   
-  IFNy.score <- vector("numeric", length = ncol(gene_expr)) ; names(IFNy.score) <- colnames(gene_expr)
+  IFNy.score <- vector("numeric", length = ncol(gene.tpm)) ; names(IFNy.score) <- colnames(gene.tpm)
 
-  # log10 transformation
-  log10.tmp.gene_expr <- log10(tmp.gene_expr + 1)
+  # Log2 transformation:
+  log2.gene.tpm <- log2(gene.tpm + 1)
+  
+  # Subset Ayers IFNy signature genes
+  sub_log2.gene.tpm  <- log2.gene.tpm[match_genes, ]
   
   # Average of the included genes for the IFN-y signature
-  IFNy.score <- data.frame(IFny = apply(log10.tmp.gene_expr, 2, mean), check.names = FALSE)
+  IFNy.score <- data.frame(IFny = apply(sub_log2.gene.tpm, 2, mean), check.names = FALSE)
     
-  
   cat("IFNy (Ayers) score computed","\n")
   return(IFNy.score)
 }

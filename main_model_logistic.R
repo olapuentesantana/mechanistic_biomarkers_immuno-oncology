@@ -85,7 +85,7 @@ for (dataset in Datasets.names){
                                  view_combination = i,
                                  algorithm = Y,
                                  standardize_any = T,
-                                 standardize_response = T, # False in logistic regression
+                                 standardize_response = F, # False in logistic regression
                                  parameters = parameters,
                                  k_fold=K,
                                  random=100)

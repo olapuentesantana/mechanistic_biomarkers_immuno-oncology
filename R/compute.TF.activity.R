@@ -34,7 +34,7 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   # ****************
   # scripts
   source("../R/scaling_function.R")
-  
+
   # ****************
   # data
   load("../data/all_genes_ICB_proxies.RData")
@@ -44,38 +44,16 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   tpm <- RNA.tpm
   genes <- rownames(tpm)
   
-  # Rows with non-valid HGNC symbols were removed.
-  if (any(grep("\\?",genes))) {
-    tpm <- tpm[-grep("?",rownames(tpm), fixed = T),]
-    genes <- rownames(tpm)
-  }
-  if (any(grep("\\|",genes))) {
-    genes <- sapply(strsplit(rownames(tpm),"\\|"),function(X) return(X[1]))
-  }
-  
-  # Rows corresponding to the same HGNC symbol were averaged.
-  if(anyDuplicated(genes) != 0){
-    idx <- which(duplicated(genes) == TRUE)
-    dup_genes <- genes[idx]
-    for (ii in dup_genes){
-      tpm[which(genes %in% ii)[1],] <- colMeans(tpm[which(genes %in% ii),])
-      tpm <- tpm[-which(genes %in% ii)[2],]
-      genes <- genes[-which(genes %in% ii)[2]]
-    }
-    rownames(tpm) <- genes 
-  }
-  
   # Genes to remove according to all ICB proxy's 
   if (remove.genes.ICB_proxies) {
-    cat("Removing signatures genes for proxy's of ICB response:  \n")
+    message("Removing signatures genes for proxy's of ICB response:  \n")
     idy <- na.exclude(match(all_genes_to_remove, rownames(tpm)))
     tpm <- tpm[-idy,]
   }
   
   # Log transformed expression matrix (log2[tpm+1]):
-  start <- Sys.time()
   gene_expr <- standarization(log2(t(tpm) + 1))
-
+  
   # HGNC symbols are required
   try(if (any(grep("ENSG00000", rownames(gene_expr)))) stop("hgnc gene symbols are required", call. = FALSE))
   
@@ -88,15 +66,15 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   })
   rownames(E) <- newNames
   
+  # data extracted from publication 
   regulons <- dplyr::filter(dorothea_hs, confidence %in% c("A", "B"))
   all_regulated_transcripts <- unique(regulons$target)
-  # all_TF <- unique(regulons$tf)
+  all_tfs <- unique(regulons$tf)
   
   # check what is the percentage of regulated transcripts and TF that we have in our data
-  cat("\nTo compute TF activities: \n")
-  #cat(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in% newNames)*100/length(all_regulated_transcripts), "\n")
-  #cat(" percentage of TF = ", sum(all_TF %in% newNames)*100/length(all_TF), "\n")
-
+  message(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in%  rownames(E))*100/length(all_regulated_transcripts), "\n")
+  message(" percentage of TF = ", sum(all_tfs %in% rownames(E))*100/length(all_tfs), "\n")
+  
   # Expression matrix (rows=genes; columns=samples) scaled and recentered. 
   # Note that genes need to be in a comparable scale (e.g. z-transformed). 
   # Z score expression matrix (this is calculated within the package:
@@ -104,17 +82,18 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   # TF activity: run viper
   TF_activities <- dorothea::run_viper(input = E, regulons = regulons, 
                                        options = list(method = "none", minsize = 4, eset.filter = F, cores = 1, verbose=FALSE))
-  end <- Sys.time()
-  
+
   # Samples as rows, TFs as columns
   TF_activities <- t(TF_activities)
-
-  # Matching transcript names with TFs regulons
+  
+  # check what is the percentage of genes we have in our data
   genes_kept <- intersect(rownames(E), all_regulated_transcripts)
   genes_left <- setdiff(all_regulated_transcripts, rownames(E))
-
+  
   # Output list:
   TFs <- list(scores = TF_activities, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))
 
+  message("TF activities computed \n")
+  
   return(TFs)
 }

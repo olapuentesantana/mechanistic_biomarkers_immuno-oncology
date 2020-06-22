@@ -3,11 +3,7 @@
 ####################################################################################
 standarization <- function(X, mean, sd){
   
-  # ****************
-  # packages
-  library(matrixStats)
-  
-  X.scale = matrix(0,nrow(X), ncol(X), dimnames = list(rownames(X),colnames(X)))
+    X.scale = matrix(0,nrow(X), ncol(X), dimnames = list(rownames(X),colnames(X)))
     
   if (missing(mean) & missing(sd)) {
      mean.X = colMeans(X,na.rm = T)

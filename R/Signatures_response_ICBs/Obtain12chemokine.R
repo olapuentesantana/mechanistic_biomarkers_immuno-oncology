@@ -4,7 +4,7 @@
 # log2 intensities for each of the 12 chemokinegenes in the gene expression signature.
 ###########################################################################################
 
-Obtain12chemokine <- function(gene_expr){
+Obtain12chemokine <- function(gene.tpm){
   
   # ************
   # Literature info: 12 chemokine genes
@@ -13,13 +13,18 @@ Obtain12chemokine <- function(gene_expr){
   
   # ***************
   # Gene expression data just for 12-chemokine signature
-  match_genes <- na.omit(match(Chemokine_read, rownames(gene_expr)))
+  match_genes <- match(Chemokine_read, rownames(gene.tpm))
   
-  if (anyNA(match_genes)){cat("MISSING GENES", "\n") ; warning("Be careful, some genes are missing"); cat(!which(Chemokine_read %in% rownames(gene_expr)))}
+  if (anyNA(match_genes)){
+    warning(paste0("differenty named or missing signature genes : \n", Chemokine_read[!Chemokine_read %in% rownames(gene.tpm)]))
+    match_genes <- na.omit(match_genes)
+  }
   
-  Chemokine.score <- vector("numeric", length = ncol(gene_expr)) ; names(Chemokine.score) <- colnames(gene_expr)
+  Chemokine.score <- vector("numeric", length = ncol(gene.tpm)) ; names(Chemokine.score) <- colnames(gene.tpm)
 
-  chemokine.pca <- prcomp(t(gene_expr[match_genes,]), center = T,scale = T)
+  # log2(TPM +1)
+  gene_expr <- log2(gene.tpm + 1)
+  chemokine.pca <- prcomp(t(gene_expr[match_genes,]), center = T,scale = T) # Z-score calculated whitin prcomp
   Chemokine.score <- data.frame(chemokine = chemokine.pca$x[,1], check.names = FALSE)
   
   cat("12-chemokine (Messina) score computed","\n")
