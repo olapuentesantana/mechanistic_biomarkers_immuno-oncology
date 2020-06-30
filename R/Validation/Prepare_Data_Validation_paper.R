@@ -3,35 +3,31 @@
 
 # External datasets --> 
   ## Auslander, Gide, Hugo, Kim, Liu, Riaz, Zhao
-
-# Compute data -->
-  ## Mechanistic DataViews:
-  ### Pathways (PROGENy)
-  ### Immunecells (quanTIseq)
-  ### TFs (DoRothEAv1)
-  ### LRpairs (Ligand-Receptor pairs) --> Maisa
-  ### CYTOKINEpairs (Cytokine pairs) --> Maisa
-
 #########################################################################################################
 
 # ****************
 # working directory
-# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-# setwd("/home/olapuent/Desktop/PhD_TUE/Github_model/desktop")
-setwd("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/analysis")
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+setwd("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/R")
 
 # ****************
 # scritps 
-source("../R/compute.pathways.scores.R")
-source("../R/compute.TF.activity.R")
-source("../R/compute.LR.pairs.R")
+source("compute.pathways.scores.R")
+source("compute.TF.activity.R")
+source("compute.LR.pairs.R")
+# Pre-processing tcga gene names to match pathway genes
+source("preprocess_gene_names_to_match_pathway_genes.R")
+# Pre-processing tcga gene names to match pathway genes
+source("preprocess_gene_names_to_match_tf_target_genes.R")
+# Pre-processing tcga gene names to match LR pairs genes
+source("preprocess_gene_names_to_match_LRpairs_genes.R")
 
 # ****************
 # External datasets
 Datasets.names <-  dir("../data/Validation/Francesca", full.names = F, recursive = F)
 DataViews.test <- list()
-Labels.test <- list()
-Labels.test <- do.call(c, lapply(Datasets.names, function(dataset){
+# Labels.test <- list()
+DataViews.test <- do.call(c, lapply(Datasets.names, function(dataset){
   
   # Samples information
   load(paste0("../data/Validation/Francesca/", dataset, "/", dataset, "_sampleinfo.rdata"))
@@ -61,9 +57,9 @@ Labels.test <- do.call(c, lapply(Datasets.names, function(dataset){
   # # Remove three annotation columns
   # CYTOKINEpairs <- as.data.frame(CYTOKINEpairs[,-c(1,2,3)])
   
-  
-  # Filter samples according to clinical data (pre-treatment samples only) #
-  
+  #--------------------------------------------------------------------#
+  # Filter samples according to clinical data (pre-treatment samples only) 
+  #--------------------------------------------------------------------#
   if(dataset == "Riaz"){
     
     pre.sampleinfo <- subset(sampleinfo, Time == "Pre" & Response != "UNK")
@@ -330,52 +326,76 @@ Labels.test <- do.call(c, lapply(Datasets.names, function(dataset){
     label.pre <- data.frame(Sample = rownames(pre.sampleinfo.aval), label = clinical_PD1.pre.aval$Response)
   }
     
-    # # ****************
-    # # Computation of pathways scores (input matrix [genes, samples], ouput matrix [sample, pathways])
-    # Pathway_activities <- compute.pathways.scores(RNA.raw_counts = gene.count.pre, remove.genes.ICB_proxies=TRUE)
-    # 
-    # # ****************
-    # # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
-    # TF_activities <- compute.TF.activity(RNA.tpm = gene.tpm.pre, remove.genes.ICB_proxies=TRUE)
-    # 
-    # # ****************
-    # # Immune cells fractions (ouput matrix [sample, Immunecells])
-    # immunecells <- data.frame(t(cell_fractions.pre))
-    # 
-    # # ****************
-    # # Computaiton of L-R and cytokine pairs (ouput matrix [sample, LRpairs])
-    # LRpairs.data <- compute.LR.pairs(RNA.tpm = gene.tpm.pre, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
-    # 
-    # LRpairs <- as.data.frame(LRpairs.data$LRpairs)
-    # CYTOKINEpairs <- data.frame(LRpairs.data$CYTOKINEpairs)
-    # 
-    # # Remove NA values in  LRpairs and CYTOKINE pairs
-    # LR_sum <- apply(LRpairs,2, sum)
-    # remove_NA_LR_pairs <- as.numeric(na.action(na.omit(LR_sum)))
-    # LRpairs <- LRpairs[,-remove_NA_LR_pairs]
-    # Cyt_sum <- apply(CYTOKINEpairs,2, sum)
-    # remove_NA_Cyt_pairs <- as.numeric(na.action(na.omit(Cyt_sum)))
-    # CYTOKINEpairs <- CYTOKINEpairs[,-remove_NA_Cyt_pairs]
-    # 
-    # # ****************
-    # # data
-    # DataViews.test[[dataset]] <- list(pathways = data.frame(Pathway_activities),
-    #                                   immunecells = immunecells, 
-    #                                   TFs = data.frame(TF_activities$scores),
-    #                                   LRpairs = LRpairs,
-    #                                   CYTOKINEpairs = CYTOKINEpairs,
-    #                                   transcript = data.frame(log2(t(gene.tpm.pre)+1)))
-    
-    Labels.test[[dataset]] <- label.pre
+  # ---------------------------------------------------------------------------------- #
+  # Pathways activity computation
+  # ---------------------------------------------------------------------------------- #
   
-  return(Labels.test)
+  # Correct gene names in order to match correctly pathway responsive genes
+  gene.count.pre_processed_v2 <- preprocess_gene_names_to_match_pathways_genes(gene.count.pre)
+  
+  # Computation of Pathway scores (input matrix [genes, samples], ouput matrix [sample, pathways])
+  Pathway_activities <- compute.pathways.scores(RNA.raw_counts = gene.count.pre_processed_v2,
+                                                remove.genes.ICB_proxies=TRUE)
+
+  # ---------------------------------------------------------------------------------- #
+  # TF activity computation
+  # ---------------------------------------------------------------------------------- #
+
+  # Correct gene names in order to match correctly tf target genes
+  gene.tpm.pre_processed_v2 <- preprocess_gene_names_to_match_tf_target_genes(gene.tpm.pre)
+   
+  # Computation of TF activity (input matrix [genes, samples], ouput matrix [sample, TFs])
+  TF_activities <- compute.TF.activity(RNA.tpm = gene.tpm.pre_processed_v2, 
+                                       remove.genes.ICB_proxies=TRUE)
+
+  # ---------------------------------------------------------------------------------- #
+  # Immune cells fractions
+  # ---------------------------------------------------------------------------------- #
+  
+  # Immune cells fractions (ouput matrix [sample, Immunecells])
+  immunecells <- data.frame(t(cell_fractions.pre))
+
+  # ---------------------------------------------------------------------------------- #
+  # Ligand-Receptor and cytokine pairs computation
+  # ---------------------------------------------------------------------------------- #
+    
+  # Correct gene names in order to match correctly pathway responsive genes
+  gene.tpm.pre_processed_v2 <- preprocess_gene_names_to_match_LRpairs_genes(gene.tpm.pre)
+  
+  # Computation of L-R and cytokine pairs (ouput matrix [sample, LRpairs])
+  LRpairs.data <- compute.LR.pairs(RNA.tpm = gene.tpm.pre_processed_v2, 
+                                   remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE)
+
+  LRpairs <- as.data.frame(LRpairs.data$LRpairs)
+  CYTOKINEpairs <- data.frame(LRpairs.data$CYTOKINEpairs)
+
+  # Remove NA values in DataViews LRpairs and CYTOKINE pairs (feature-wise)
+  if (anyNA(LRpairs)){
+    LR_sum <- apply(LRpairs, 2, sum)
+    LRpairs <- LRpairs[,!is.na(LR_sum)]
+    Cyt_sum <- apply(CYTOKINEpairs, 2, sum)
+    CYTOKINEpairs <- CYTOKINEpairs[,!is.na(Cyt_sum)]
+  }
+
+  # ****************
+  # data
+  DataViews.test[[dataset]] <- list(Pathways = data.frame(Pathway_activities$scores),
+                                    ImmuneCells = immunecells,
+                                    TFs = data.frame(TF_activities$scores),
+                                    LRpairs = LRpairs,
+                                    CYTOKINEpairs = CYTOKINEpairs,
+                                    Transcript = data.frame(log2(t(gene.tpm.pre)+1)))
+    
+    # Labels.test[[dataset]] <- label.pre
+  
+  return(DataViews.test)
     
 }))
 
 All.DataViews.test <- DataViews.test
-All.Labels.test <- Labels.test
-# save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
-# save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
+# All.Labels.test <- Labels.test
+#save(All.DataViews.test, file = "../data/PanCancer_draft_v1/Validation/All_DataViews_test_pre.RData")
+# save(All.Labels.test, file = "../data/PanCancer_draft_v1/Validation/All_Labels_test_pre.RData")
 
 # --------------------------- #
 # Join SKCM datasets
@@ -384,8 +404,8 @@ All.Labels.test <- Labels.test
 # Hugo, Liu, Riaz --> PD-1
 # Gide, Auslander --> PD-1 & CTLA4
 
-load("../data/Validation/All_DataViews_test_pre.RData")
-load("../data/Validation/All_Labels_test_pre.RData")
+load("../data/PanCancer_draft_v1/Validation/All_DataViews_test_pre.RData")
+load("../data/PanCancer_draft_v1/Validation/All_Labels_test_pre.RData")
 
 # All validation datasets
 Datasets.names <-  dir("../data/Validation/Francesca", full.names = F, recursive = F)
@@ -436,6 +456,6 @@ names(All.DataViews.test[["comb.Gide_Auslander"]]) <- names(All.DataViews.test$A
 All.Labels.test[["comb.Gide_Auslander"]] <- rbind(All.Labels.test[["Gide"]], 
                                                   All.Labels.test[["Auslander"]])
                                                         
-# save(All.DataViews.test, file = "../data/Validation/All_DataViews_test_pre.RData")
-# save(All.Labels.test, file = "../data/Validation/All_Labels_test_pre.RData")
+#save(All.DataViews.test, file = "../data/PanCancer_draft_v1/Validation/All_DataViews_test_pre.RData")
+#save(All.Labels.test, file = "../data/PanCancer_draft_v1/Validation/All_Labels_test_pre.RData")
 

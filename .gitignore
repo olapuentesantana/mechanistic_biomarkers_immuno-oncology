@@ -24,4 +24,6 @@ output/
 analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS.RData
 analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_prot.RData
 analysis/pre-processing/TCGA_samples_available_screening_with_quanTIseq_IS_Spat.RData
-figures/
+figures/BIM_cluster_presentation/
+figures/Federica_presentation_colab/
+ISPRESSO/

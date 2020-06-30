@@ -1,6 +1,6 @@
-#' compute.TF.activity
+#' Compute TF activity
 #'
-#' This function transcription factor activity from raw counts RNAseq data.
+#' This function compute TF activity from tpm RNAseq data.
 #'
 #' @importFrom dorothea dorothea
 #'
@@ -15,8 +15,8 @@
 # Compute TFs activity from transcriptomics data.
 #--------------------------------------------------------------------
 
-# This function pre-process transcriptomics data as required by DoRothEA It matches transcript names with DoRothEA genes (regulons for the
-# transcription factors) and provides information regarding how many transcripts are lost/kept. TF activities are computed using DoRothEA package.
+# This function pre-process transcriptomics data as required by dorothea. It matches transcript names with TF regulons target genes
+# and provides information regarding how many transcripts are lost/kept. TF activities are computed using dorothea package.
 
 compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
 
@@ -26,11 +26,11 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   list.of.packages <- c("dorothea", "dplyr", "viper")
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages)) BiocManager::install(new.packages, ask = FALSE)
-  
+
   suppressMessages(library(dorothea))
   suppressMessages(library(dplyr))
   suppressMessages(library(viper))
-  
+
   # ****************
   # scripts
   source("../R/scaling_function.R")
@@ -40,23 +40,23 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
   load("../data/all_genes_ICB_proxies.RData")
   # acessing (human) dorothea regulons
   data(dorothea_hs, package = "dorothea")
-  
+
   tpm <- RNA.tpm
   genes <- rownames(tpm)
-  
-  # Genes to remove according to all ICB proxy's 
+
+  # Genes to remove according to all ICB proxy's
   if (remove.genes.ICB_proxies) {
     message("Removing signatures genes for proxy's of ICB response:  \n")
     idy <- na.exclude(match(all_genes_to_remove, rownames(tpm)))
     tpm <- tpm[-idy,]
   }
-  
+
   # Log transformed expression matrix (log2[tpm+1]):
   gene_expr <- standarization(log2(t(tpm) + 1))
-  
+
   # HGNC symbols are required
   try(if (any(grep("ENSG00000", rownames(gene_expr)))) stop("hgnc gene symbols are required", call. = FALSE))
-  
+
   # redefine gene names to match transcripts for viper
   E <- t(gene_expr)
   newNames <- sapply(rownames(E), function(x){
@@ -65,35 +65,35 @@ compute.TF.activity <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE,....){
     paste0(zz_tmp[1:(length(zz_tmp)-1)], collapse = "-")
   })
   rownames(E) <- newNames
-  
-  # data extracted from publication 
+
+  # data extracted from publication
   regulons <- dplyr::filter(dorothea_hs, confidence %in% c("A", "B"))
   all_regulated_transcripts <- unique(regulons$target)
   all_tfs <- unique(regulons$tf)
-  
+
   # check what is the percentage of regulated transcripts and TF that we have in our data
   message(" percentage of regulated transcripts = ", sum(all_regulated_transcripts %in%  rownames(E))*100/length(all_regulated_transcripts), "\n")
   message(" percentage of TF = ", sum(all_tfs %in% rownames(E))*100/length(all_tfs), "\n")
-  
-  # Expression matrix (rows=genes; columns=samples) scaled and recentered. 
-  # Note that genes need to be in a comparable scale (e.g. z-transformed). 
+
+  # Expression matrix (rows=genes; columns=samples) scaled and recentered.
+  # Note that genes need to be in a comparable scale (e.g. z-transformed).
   # Z score expression matrix (this is calculated within the package:
-  
+
   # TF activity: run viper
-  TF_activities <- dorothea::run_viper(input = E, regulons = regulons, 
+  TF_activities <- dorothea::run_viper(input = E, regulons = regulons,
                                        options = list(method = "none", minsize = 4, eset.filter = F, cores = 1, verbose=FALSE))
 
   # Samples as rows, TFs as columns
   TF_activities <- t(TF_activities)
-  
+
   # check what is the percentage of genes we have in our data
   genes_kept <- intersect(rownames(E), all_regulated_transcripts)
   genes_left <- setdiff(all_regulated_transcripts, rownames(E))
-  
+
   # Output list:
   TFs <- list(scores = TF_activities, transcripts_kept = length(genes_kept), transcripts_left = length(genes_left))
 
   message("TF activities computed \n")
-  
+
   return(TFs)
 }

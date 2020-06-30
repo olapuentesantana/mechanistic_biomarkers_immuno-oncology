@@ -126,9 +126,6 @@ sapply(PanCancer.names[5:length(PanCancer.names)], function(Cancer){
   genes <- rownames(estimates.transcripts)
   estimates.transcripts <- sapply(estimates.transcripts, as.numeric) # numeric
   
-  # We need approved gene symbols
-  #genes_updated <- UpdateSymbolList(symbols = genes)
-  
   # Obtaining TPM (transcriptomics data)
   TPM.transcripts <- estimates.transcripts * 1e6
   rownames(TPM.transcripts) <- genes
@@ -160,7 +157,7 @@ sapply(PanCancer.names[5:length(PanCancer.names)], function(Cancer){
   # # Correct gene names in TCGA data
   # TPM.transcripts_process_v1 <- preprocess_tcga_genes_names(TPM.transcripts)
   # 
-  # # Correct gene names in order to match correctly pathway responsive genes
+  # # Correct gene names in order to match correctly tf target genes
   # TPM.transcripts_process_v2 <- preprocess_gene_names_to_match_tf_target_genes(TPM.transcripts_process_v1)
   # 
   # # Sample screening:

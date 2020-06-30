@@ -16,18 +16,8 @@
 # Compute Ligand-Receptor and Cytokine pairs weights from transcriptomics data.
 #--------------------------------------------------------------------
 
-# This function pre-process transcriptomics data as required by DoRothEA. It matches transcript names with DoRothEA genes (regulons for the
-# transcription factors) and provides information regarding how many transcripts are lost/kept in the computation. 
-# TF activities are computed using DoRothEA package.
 
 compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cytokines.pairs=TRUE,....){
-
-  # ****************
-  # packages
-  # library(Seurat)
-
-  # ****************
-  # scripts
 
   
   # ****************
@@ -57,15 +47,25 @@ compute.LR.pairs <- function(RNA.tpm, remove.genes.ICB_proxies=TRUE, compute.cyt
   colnames(LR.pairs.computed) <- colnames(gene_expr)
   LR.pairs.computed <- t(LR.pairs.computed)
   colnames(LR.pairs.computed) <- LR.pairs_network
-  cat("L-R pairs computed \n")
-  
+
   # Compute cytokine pairs 
   if (compute.cytokines.pairs) {
     idy <- na.exclude(match(CYTOKINE.pairs_subnetwork, colnames(LR.pairs.computed)))
     CYTOKINE.pairs.computed <- LR.pairs.computed[,idy]
   }
-  cat("Cytokine pairs computed \n")
   
-  Ligand.Receptor.data <- list(LRpairs = LR.pairs.computed, CYTOKINEpairs = CYTOKINE.pairs.computed)
-  return(Ligand.Receptor.data)
+  # Remove missing pairs in LR pairs data frame
+  missing.LRpairs <- colnames(LR.pairs.computed)[as.vector(apply(LR.pairs.computed, 2, anyNA))]
+  LR.pairs.computed <- LR.pairs.computed[,-match(missing.LRpairs, colnames(LR.pairs.computed))]
+  # Remove missing pairs in CYTOKINE pairs data frame
+  missing.CYTOKINEpairs <- colnames(CYTOKINE.pairs.computed)[as.vector(apply(CYTOKINE.pairs.computed, 2, anyNA))]
+  CYTOKINE.pairs.computed <- CYTOKINE.pairs.computed[,-match(missing.CYTOKINEpairs, colnames(CYTOKINE.pairs.computed))]
+  
+  # Output list:  
+  LR.data <- list(LRpairs = as.data.frame(LR.pairs.computed), CYTOKINEpairs = as.data.frame(CYTOKINE.pairs.computed))
+  
+  message("L-R pairs computed \n")
+  message("Cytokine pairs computed \n")
+  
+  return(LR.data)
 }
