@@ -36,12 +36,12 @@ panel.lm <- function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 0
 load("TCGA_samples_available_screening_with_quanTIseq_IS.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 
-
+PanCancer.names <- "THCA"
 comb_tasks <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
   
   # Load previous data (remove all)
-  load(paste0("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/data/PanCancer/",
-              Cancer,"/new/ImmuneResponse_no_filter_", Cancer,"_matrix_format.RData"))  
+  load(paste0("/Users/Oscar/Desktop/PhD_TU:e/Research/mechanistic_biomarkers_immuno-oncology/data/PanCancer_draft_v1/",
+              Cancer,"/ImmuneResponse_no_filter_", Cancer,".RData"))  
   
   tmp_data <- as.matrix(ImmuneResponse.no_filter)
   
@@ -51,9 +51,9 @@ comb_tasks <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
 
 data <- as.data.frame(comb_tasks)
 
-pairs( ~ . , data = data, upper.panel = panel.cor,lower.panel = panel.lm,
-       cex.labels = 1)
-
+# pairs( ~ . , data = data, upper.panel = panel.cor,lower.panel = panel.lm,
+#        cex.labels = 1)
+library(corrplot)
 cor.matrix <- cor(data)
 cor.sig <- cor.mtest(data)
 

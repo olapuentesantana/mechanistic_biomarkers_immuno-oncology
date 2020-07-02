@@ -24,7 +24,7 @@ predict_BEMKL <- function(DataViews.train, DataViews.test, Label.test, View, K=1
   predictions[[View]] <- matrix(NA, nrow=nrow(Label.test), ncol=K, 
                                 dimnames = list(Label.test$Sample, seq(1,100,1)))
   
-  labels.all <- do.call(c, lapply(drugs, function(X){labels.all[[X]] <- labels; return(labels.all)}))
+  labels.all <- labels
   predictions.all <- do.call(c, lapply(drugs, function(X){predictions.all[[X]] <- predictions; return(predictions.all)}))
   
   
