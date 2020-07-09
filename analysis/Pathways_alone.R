@@ -26,15 +26,13 @@ PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 
 # ****************
 # views
-views <- c(Pathways = 'gaussian', ImmuneCells = 'gaussian',
-           LRpairs = 'gaussian', CYTOKINEpairs = 'gaussian')   
+views <- c(Pathways = 'gaussian')
 
 # **************** 
 # Select data to examine
 
 ## Pathways and immune cells ## 
-view_combinations <- list(views[1], views[2],views[c(1,2)])
-
+view_combinations <- list(views[1])
 
 # --------------------------------------------- #
 # Collect performance info from cross-validation 
@@ -149,7 +147,7 @@ colors.cancer_types <- toupper(c("#31efb8","#6138a9","#b59000","#0175e7","#c54c1
                                  "#9b1e00","#ff7ea8","#6d2000","#ff7e5b","#580e08","#ca815b"))
 names(colors.cancer_types) <- levels(summary_view_all$CancerType)
 # View
-colors.DataType <- toupper(c("#01dca1","#7e45b8","#9d2a00"))
+colors.DataType <- toupper(c("#01dca1"))
 names(colors.DataType) <- levels(summary_view_all$DataType)
 # Task
 colors.tasks <- toupper(c("#760068","#df9d1e","#121278","#616400",
@@ -174,68 +172,26 @@ summary_view_all.SpCorr_1se.mse.BA <- subset(summary_view_all, metric == "SpCorr
 summary_view_all.SpCorr_1se.mse.BA$task <- factor(summary_view_all.SpCorr_1se.mse.BA$task)
 
 # Both algorithms
-
 summary_view_all.SpCorr.both <- rbind(summary_view_all.SpCorr_1se.mse.EN, summary_view_all.SpCorr_1se.mse.BA)
 summary_view_all.SpCorr.both$task <- factor(summary_view_all.SpCorr.both$task)
+summary_view_all.SpCorr.both$algorithm <- factor(summary_view_all.SpCorr.both$algorithm)
 
-
-# Assess if it's significant the addition of spatial information on immune cells quantification:
-df <- summary_view_all.SpCorr.both[,c("perf_min", "DataType", "algorithm", "CancerType")]
-
-df.signif <- do.call(rbind, lapply(as.character(unique(df$CancerType)), function(X){
-  df.signif <- do.call(rbind, lapply(as.character(unique(df$algorithm)), function(Y){
-    
-    stat.test <- df %>% filter(CancerType == X) %>% filter(algorithm == Y)
-    A <- subset(stat.test, DataType %in% c("Pathways_ImmuneCells"), select = "perf_min")
-    B <- subset(stat.test, DataType %in% c("Pathways"), select = "perf_min")
-
-    p.value <- wilcox.test(A$perf_min, B$perf_min, alternative = "greater", paired = FALSE)[["p.value"]]
-
-    if(p.value <= 0.0001){
-      label <- "****"
-    }else if(p.value <= 0.001){
-      label <- "***"
-    }else if(p.value <= 0.01){
-      label <- "**"
-    }else if(p.value <= 0.05){
-      label <- "*"
-    }else if(p.value > 0.05){
-      label <- "ns"
-    }
-    
-    return(data.frame(CancerType = X, algorithm = Y,  p.val = p.value, label = label))
-  }))
-  return(df.signif)
-}))
-
-df.signif_EN <- subset(df.signif, algorithm == "Multi_Task_EN")
-df.signif_BE <- subset(df.signif, algorithm == "BEMKL")
-
-summary_view_all.SpCorr.both$lab <- c(rep(df.signif_EN$label, each = 300), 
-                                      rep(df.signif_BE$label, each = 300))
-
-summary_view_all.SpCorr.both$p.val <- c(rep(df.signif_EN$p.val, each = 300), 
-                                        rep(df.signif_BE$p.val, each = 300))
-
-dLines <- data.frame(CancerType = rep(unique(summary_view_all.SpCorr.both$CancerType), each = 2),
-                     DataType = levels(summary_view_all.SpCorr.both$DataType)[2:3],
-                     x = seq(1,18,1), xend= seq(1.25,19,1), y = c(0.96), yend = c(0.96))
 # Using ggplot
-ggplot(summary_view_all.SpCorr.both, aes(x = CancerType, y = perf_min, fill = DataType,
-                                         colour = DataType)) + # , alpha = algorithm)) +
+ggplot(summary_view_all.SpCorr.both, aes(x = CancerType, y = perf_min, fill = algorithm,
+                                         colour = algorithm)) + # , alpha = algorithm)) +
   geom_boxplot() +
-  scale_fill_manual(name = "Mechanistic signature",
-                    labels = levels(summary_view_all.SpCorr.both$DataType),
-                    values = as.vector(colors.DataType)) +
-  scale_color_manual(name = "Mechanistic signature",
-                     labels = levels(summary_view_all.SpCorr.both$DataType),
-                     values = as.vector(colors.DataType)) +
-  geom_text(aes(CancerType, 0.99, label=lab), nudge_x = 0.1, check_overlap = TRUE,
-            color = "black", size = 4, data=summary_view_all.SpCorr.both) + 
-  geom_segment(data = dLines, aes(x = x, xend = xend, y = y, yend = y), color = "black") +
+  scale_fill_manual(name = "Algorithm",
+                    labels = levels(summary_view_all.SpCorr.both$algorithm),
+                    values = as.vector(colors.algorithm)) +
+  scale_color_manual(name = "Algorithm",
+                     labels = levels(summary_view_all.SpCorr.both$algorithm),
+                     values = as.vector(colors.algorithm)) +
+  #geom_text(aes(CancerType, 0.99, label=lab), nudge_x = 0.1, check_overlap = TRUE,
+  #          color = "black", size = 4, data=summary_view_all.SpCorr.both) + 
+  #geom_segment(data = dLines, aes(x = x, xend = xend, y = y, yend = y), color = "black") +
   ylim(0.25,1) +
   theme_bw() + theme(panel.grid = element_blank()) +
-  facet_grid(algorithm ~ .) +
+  #facet_grid(algorithm ~ .) +
   theme(axis.text.x = element_text(size=8,face="bold", angle = 55, vjust = 0.75), axis.title.x = element_blank(),
         axis.text.y = element_text(size=8,face="bold"), axis.title.y = element_text(size=10,face="bold"), 
         axis.ticks.x = element_blank(),
@@ -244,7 +200,7 @@ ggplot(summary_view_all.SpCorr.both, aes(x = CancerType, y = perf_min, fill = Da
   labs(y = "Spearman Correlation")
 # ggtitle("Multi-task Lasso regression (using common median)")
 
-ggsave(paste0("../figures/PanCancer_draft_v1/Pathways_ImmuneCells/PanCancer_both_alg_comb_Pathways_ImmuneCells_training_performance_SpCorr_1SE_MSE.pdf"),
+ggsave(paste0("../figures/PanCancer_draft_v1/Pathways/PanCancer_both_alg_Pathways_training_performance_SpCorr_1SE_MSE.pdf"),
        width = 10, height = 10)
 
 # --------------------------------------------- #
@@ -329,7 +285,7 @@ colors.cancer_types <- toupper(c("#31efb8","#6138a9","#b59000","#0175e7","#c54c1
                                  "#9b1e00","#ff7ea8","#6d2000","#ff7e5b","#580e08","#ca815b"))
 names(colors.cancer_types) <- levels(summary_view_all$CancerType)
 # View
-colors.DataType <- toupper(c("#01dca1","#7e45b8","#9d2a00"))
+colors.DataType <- toupper(c("#01dca1"))
 names(colors.DataType) <- levels(summary_view_all$DataType)
 # Task
 colors.tasks <- toupper(c("#760068","#df9d1e","#121278","#616400",
@@ -339,7 +295,7 @@ names(colors.tasks) <- levels(summary_view_features$task)
 # Using ggplot:
 library(gtable)
 # 1. We show the distribution of the coefficients for each feature across tasks
-summary_view_features.comb <- subset(summary_view_features, DataType == "Pathways_ImmuneCells")
+summary_view_features.comb <- subset(summary_view_features, DataType == "Pathways")
 
 # # One task
 # summary_view_features.task <- subset(summary_view_features, task == "CYT")
@@ -360,8 +316,12 @@ sapply(as.character(unique(summary_view_features$CancerType)), function(X){
   summary_view_features.comb.cancer$feature <- factor(summary_view_features.comb.cancer$feature,
                                                       levels = unique(median.features$feature))
   
+  # keep only features that appear more than 50 times
+  keep <- as.character(median.features$feature[median.features$estimate !=0])
+  tmp <- summary_view_features.comb.cancer[summary_view_features.comb.cancer$feature %in% keep,]
+  
   # boxplot
-  boxplot <-ggplot(summary_view_features.comb.cancer, aes(x = feature, y = estimate, fill = task, color = task)) +
+  boxplot <- ggplot(summary_view_features.comb.cancer, aes(x = feature, y = estimate, fill = task, color = task)) +
     geom_boxplot(outlier.shape = NA) +
     scale_fill_manual(name = "Task",
                       labels = names(colors.tasks),
@@ -370,21 +330,13 @@ sapply(as.character(unique(summary_view_features$CancerType)), function(X){
                        labels = names(colors.tasks),
                        values = colors.tasks) +
     theme_minimal() +
-    #facet_grid(CancerType ~.) + 
+    #facet_grid(task ~.) + 
     theme(panel.grid = element_blank()) +
     #coord_flip() + 
     # ylim(c(-0.1,0.9)) +
     #coord_fixed(ratio = 2) +
     geom_hline(yintercept = 0, linetype="dashed") + 
-    scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
-                                "Macrophages_M2"= "M2",
-                                "B_cells" = "B cells",
-                                "T_cells_regulatory_Tregs" = "Tregs",
-                                "Macrophages_M1"= "M1",
-                                "T_cells_CD4" = "CD4 T cells",
-                                "NK_cells" = "NK cells",
-                                "Dendritic_cells" = "DC cells")) +
-    theme(axis.text.x = element_text(size=8,face="bold", angle = 55, vjust = 0.75), axis.title.x = element_blank(),
+    theme(axis.text.x = element_text(size=6, angle = 55, vjust = 0.75), axis.title.x = element_blank(),
           axis.text.y = element_text(size=8,face="bold"), 
           axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
           legend.position = c(0.75, 0.75), legend.direction = "horizontal",
@@ -404,22 +356,17 @@ sapply(as.character(unique(summary_view_features$CancerType)), function(X){
   
   frequency.across_iterations$estimate <- frequency.across_iterations$estimate/8
   levels(frequency.across_iterations$feature) <- levels(summary_view_features.comb.cancer$feature)
+  
+  tmp <- frequency.across_iterations[frequency.across_iterations$feature %in% keep,]
+  
   barplot <- ggplot(frequency.across_iterations, aes(x = feature, y = estimate)) +
     geom_bar(stat="identity", fill = "red", color="red") +
     theme_minimal() +
     theme(panel.grid = element_blank()) +
     # coord_fixed(ratio = 1)+
-    # facet_grid(task ~ .) +
-    scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
-                                "Macrophages_M2"= "M2",
-                                "B_cells" = "B cells",
-                                "T_cells_regulatory_Tregs" = "Tregs",
-                                "Macrophages_M1"= "M1",
-                                "T_cells_CD4" = "CD4 T cells",
-                                "NK_cells" = "NK cells",
-                                "Dendritic_cells" = "DC cells")) +
+    #facet_grid(task ~ .) +
     theme(axis.text.x = element_blank(),
-          axis.text.y = element_text(size=8,face="bold"), 
+          axis.text.y = element_text(size=6), 
           axis.ticks.y = element_line(size = 0.5),
           legend.position = "none", 
           panel.border = element_blank(), panel.background = element_blank(), 
@@ -433,8 +380,8 @@ sapply(as.character(unique(summary_view_features$CancerType)), function(X){
   g <- rbind(g1, g2, size = "first")
   g$widths <- unit.pmax(g1$widths, g2$widths)
   grid.newpage()
-  pdf(paste0("../Figures/PanCancer_draft_v1/Pathways_ImmuneCells/", sapply(strsplit(X, split = "(", fixed = T), head, 1),
-             "_comb_Pathways_ImmuneCells_1se_mse_cor_model.pdf"), width = 12, height = 12)
+  pdf(paste0("../Figures/PanCancer_draft_v1/Pathways/", sapply(strsplit(X, split = "(", fixed = T), head, 1),
+             "_Pathways_1se_mse_cor_model.pdf"), width = 12, height = 12)
   grid.draw(g)
   dev.off()
   
@@ -443,12 +390,14 @@ sapply(as.character(unique(summary_view_features$CancerType)), function(X){
 
 # All cancer types with all tasks #
 summary_view_features.comb$feature <- factor(summary_view_features.comb$feature,
-                                             levels = unique(median.features$feature))
+                                             levels = unique(summary_view_features.comb$feature))
 ## Sort features by median estimate value
 median.features <- aggregate(estimate ~ feature + DataType + CancerType + task,
                              FUN = "median", na.rm = T, data = summary_view_features.comb)
 median.features <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
 
+median.features$feature <- factor(median.features$feature,
+                                  levels = unique(median.features$feature))
 # Heatmap
 ggplot(median.features, aes(x = feature, y = CancerType, fill = estimate)) +
   geom_tile(color = "gray", size = 0.25) +
@@ -458,15 +407,7 @@ ggplot(median.features, aes(x = feature, y = CancerType, fill = estimate)) +
   theme(panel.grid = element_blank()) +
   # ylim(c(-0.1,0.9)) +
   #coord_fixed(ratio = 3) +
-  scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
-                              "Macrophages_M2"= "M2",
-                              "B_cells" = "B cells",
-                              "T_cells_regulatory_Tregs" = "Tregs",
-                              "Macrophages_M1"= "M1",
-                              "T_cells_CD4" = "CD4 T cells",
-                              "NK_cells" = "NK cells",
-                              "Dendritic_cells" = "DC cells")) +
-  theme(axis.text.x = element_text(size=8, angle = 55, vjust = 0.65), axis.title.x = element_blank(),
+  theme(axis.text.x = element_text(size=6, angle = 55, vjust = 0.65), axis.title.x = element_blank(),
         axis.text.y = element_text(size=6), axis.title.y = element_blank(),
         axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
         legend.position = "right", legend.direction = "vertical",
@@ -476,6 +417,6 @@ ggplot(median.features, aes(x = feature, y = CancerType, fill = estimate)) +
         legend.title = element_text(size = 8, vjust = 0.5),
         strip.background = element_rect(fill = "lightgray", colour = "white"))
 
-ggsave(paste0("../Figures/PanCancer_draft_v1/Pathways_ImmuneCells/PanCancer_heatmap_1se_mse_model_cor_tasks.pdf"), width = 12, height = 12)
+ggsave(paste0("../Figures/PanCancer_draft_v1/Pathways/PanCancer_heatmap_1se_mse_model_cor_tasks.pdf"), width = 12, height = 12)
 
 

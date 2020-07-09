@@ -36,7 +36,7 @@ panel.lm <- function (x, y, col = par("col"), bg = NA, pch = par("pch"), cex = 0
 load("TCGA_samples_available_screening_with_quanTIseq_IS.RData")
 PanCancer.names <- names(TCGA.samples.pancancer_with_screen_quantiseg_IS)
 
-PanCancer.names <- "THCA"
+PanCancer.names <- "BRCA"
 comb_tasks <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
   
   # Load previous data (remove all)
@@ -50,7 +50,6 @@ comb_tasks <- do.call(rbind, lapply(PanCancer.names, function(Cancer){
 }))
 
 data <- as.data.frame(comb_tasks)
-
 # pairs( ~ . , data = data, upper.panel = panel.cor,lower.panel = panel.lm,
 #        cex.labels = 1)
 library(corrplot)

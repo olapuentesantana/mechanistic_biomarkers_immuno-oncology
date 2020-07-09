@@ -442,11 +442,18 @@ sapply(as.character(unique(summary_view_features$CancerType)), function(X){
 })
 
 # All cancer types with all tasks #
-
+summary_view_features.comb$feature <- factor(summary_view_features.comb$feature,
+                                             levels = unique(summary_view_features.comb$feature))
+## Sort features by median estimate value
+median.features <- aggregate(estimate ~ feature + DataType + CancerType + task,
+                             FUN = "median", na.rm = T, data = summary_view_features.comb)
+median.features <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
+median.features$feature <- factor(median.features$feature,
+                                  levels = unique(median.features$feature))
 # Heatmap
-ggplot(summary_view_features.comb, aes(x = feature, y = CancerType, fill = estimate)) +
-  geom_tile(color = "gray", size = 0.25) +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+ggplot(median.features, aes(x = feature, y = CancerType, fill = estimate)) +
+  geom_tile(color = "white", size = 0.25) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Median estimate") +
   theme_minimal() +
   facet_grid(task ~.) + 
   theme(panel.grid = element_blank()) +
@@ -459,7 +466,9 @@ ggplot(summary_view_features.comb, aes(x = feature, y = CancerType, fill = estim
                               "Macrophages_M1"= "M1",
                               "T_cells_CD4" = "CD4 T cells",
                               "NK_cells" = "NK cells",
-                              "Dendritic_cells" = "DC cells")) +
+                              "Dendritic_cells" = "DC cells",
+                              "til_percentage" = "til %",
+                              "Banfeld_Raftery" = "Banfield & \n Raftery")) +
   theme(axis.text.x = element_text(size=8, angle = 55, vjust = 0.65), axis.title.x = element_blank(),
         axis.text.y = element_text(size=8), axis.title.y = element_blank(),
         axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
@@ -471,4 +480,45 @@ ggplot(summary_view_features.comb, aes(x = feature, y = CancerType, fill = estim
         strip.background = element_rect(fill = "lightgray", colour = "white"))
 
 ggsave(paste0("../Figures/PanCancer_draft_v1/ImmuneCells_sTIL/PanCancer_heatmap_1se_mse_model_cor_tasks.pdf"), width = 12, height = 12)
+
+# Summary cancer types using median across tasks #
+# First, remove chemokine signature due to + and - correlation with other tasks
+summary_view_features.comb <- subset(summary_view_features.comb, task != "chemokine")
+
+## Sort features by median estimate value
+median.features <- aggregate(estimate ~ feature + DataType + CancerType,
+                             FUN = "median", na.rm = T, data = summary_view_features.comb)
+median.features <- median.features[order(abs(median.features$estimate), decreasing = TRUE),]
+median.features$feature <- factor(median.features$feature,
+                                  levels = unique(median.features$feature))
+# Summary heatmap
+ggplot(median.features, aes(x = feature, y = CancerType, fill = estimate)) +
+  geom_tile(color = "white", size = 0.25) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Median estimate") +
+  theme_minimal() +
+  #facet_grid(task ~.) + 
+  theme(panel.grid = element_blank()) +
+  # ylim(c(-0.1,0.9)) +
+  #coord_fixed(ratio = 3) +
+  scale_x_discrete(labels = c("T_cells_CD8" = "CD8 T cells",
+                              "Macrophages_M2"= "M2",
+                              "B_cells" = "B cells",
+                              "T_cells_regulatory_Tregs" = "Tregs",
+                              "Macrophages_M1"= "M1",
+                              "T_cells_CD4" = "CD4 T cells",
+                              "NK_cells" = "NK cells",
+                              "Dendritic_cells" = "DC cells",
+                              "til_percentage" = "til %",
+                              "Banfeld_Raftery" = "Banfield & \n Raftery")) +
+  theme(axis.text.x = element_text(size=10, angle = 45, vjust = 0.55), axis.title.x = element_blank(),
+        axis.text.y = element_text(size=10), axis.title.y = element_blank(),
+        axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
+        legend.position = "top", legend.direction = "horizontal",
+        #legend.box.background = element_rect(color="black", size=0.3),
+        #legend.box.margin = margin(2, 2, 2, 2),
+        legend.text=element_text(size=10), 
+        legend.title = element_text(size = 10, vjust = 0.7),
+        strip.background = element_rect(fill = "lightgray", colour = "white"))
+
+ggsave(paste0("../Figures/PanCancer_draft_v1/ImmuneCells_sTIL/Sumary_PanCancer_heatmap_1se_mse_model_cor_tasks.pdf"), width = 8, height = 8)
 
