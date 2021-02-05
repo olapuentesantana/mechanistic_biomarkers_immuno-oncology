@@ -2,7 +2,7 @@
 # Script to estimate the hyperparameters, specific for elastic net regression.
 ###########################################################################################
 
-elastic_net_train <- function(drug_source, views_source, view_combination, standardize_any = F, standardize_response = F,
+elastic_net_train <- function(drug_source, views_source, view_combination, standardize_any = F, standardize_response = T,
                                 family, parameters, measure_type = c("mse","class"), k_fold = 5, parallelize = T, iteration) {
   
   # ****************

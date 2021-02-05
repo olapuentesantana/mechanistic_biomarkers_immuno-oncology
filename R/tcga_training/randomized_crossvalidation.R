@@ -52,14 +52,8 @@ cross_validation <- function(drug_source, views_source, view_combination, algori
     }
     
     cat("Model -->", algorithm, "\n")
-    
-    if (algorithm %in% c("Lasso", "Elastic_Net", "Logistic_EN")){
-      
-      # Generalized linear models:
-      output[[k]] <- GLMs(drug_source, views_source, view_combination, learning_indices, prediction_indices,
-                          standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
-      
-    }else if (algorithm %in% "Multi_Task_EN"){
+ 
+    if (algorithm %in% "Multi_Task_EN"){
       
       # Multi-task (Elastic Net):
       output[[k]] <- mgaussian(drug_source, views_source, view_combination, learning_indices, prediction_indices,
@@ -69,12 +63,6 @@ cross_validation <- function(drug_source, views_source, view_combination, algori
       
       # BEMKL:
       output[[k]] <- BEMKL(drug_source, views_source, view_combination, learning_indices, prediction_indices,
-                           standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
-      
-    }else if (algorithm %in% "L21"){
-      
-      # Multi-task (L21):
-      output[[k]] <- L21_R(drug_source, views_source, view_combination, learning_indices, prediction_indices,
                            standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
     }
   }

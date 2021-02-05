@@ -11,7 +11,7 @@ predict_BEMKL <- function(DataViews.train, DataViews.test, Label.test, View, K=1
   # ****************
   # scripts
   source("R/scaling_function.R")
-  source("R/BEMKL/bemkl_supervised_multioutput_regression_variational_test.R")
+  source("R/tcga_training/BEMKL/bemkl_supervised_multioutput_regression_variational_test.R")
   
   P <- length(View.info)
 
