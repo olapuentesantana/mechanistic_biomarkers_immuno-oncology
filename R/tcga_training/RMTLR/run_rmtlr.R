@@ -1,27 +1,26 @@
 ##########################################################################################################################
-# Script to perform regularized Multi-task Learning using the package RMTL - L21 regularization 
+# Script to run multiresponse (multi-task learning) from glmnet
 ##########################################################################################################################
 
-mgaussian <- function(drug_source, views_source, view_combination, learning_indices, prediction_indices,
+run_rmtlr <- function(drug_source, views_source, view_combination, learning_indices, prediction_indices,
                         standardize_any=F, standardize_response=F,
                         parameters, iteration) {
   
   
   # ****************
   # scripts
-  source("./R/scaling_function.R")
-  source("./R/unscaling_function.R")
-  source("./R/civalue.R")
-  source("./R/GLMs/mgaussian_test.R")
-  source("./R/GLMs/elastic_net_train.R")
+  source("./tcga_training/scaling_function.R")
+  source("./tcga_training/civalue.R")
+  source("./tcga_training/RMTLR/rmtlr_test.R")
+  source("./tcga_training/RMTLR/rmtlr_train.R")
   
   # ****************
   # General variables:
-  names_view <- names(view_combination) # Need data type 
+  names_view <- names(view_combination) # Need data type
   P <- length(view_combination) # number of views
   Ndrug <- ncol(drug_source) # number of tasks (output variables)
   
-  # Output variables: 
+  # Output variables:
   performances <- list()
   model <- list()
   training_set <- list()
@@ -30,9 +29,7 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
   
   # ****************
   # Initialize variables
-  names_view <- names(view_combination) # Need data type 
-  #mas.std.learning.X <- mas.mea.learning.X <- vector("list", length = random)
-  #mas.std.learning.Y <- mas.mea.learning.Y <- vector("list", length = random)
+  names_view <- names(view_combination) # Need data type
   
   # separate input data in learing and prediction
   learning.X <- lapply(names_view, function(x){views_source[[x]][learning_indices,]})
@@ -41,33 +38,27 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
   # separate output data in learing and prediction
   learning.Y <- drug_source[learning_indices,]
   validation.Y <- drug_source[prediction_indices,]
+
+  # separate output data in learing and prediction
+  learning.Y <- drug_source[learning_indices,]
+  validation.Y <- drug_source[prediction_indices,]
   
   if (standardize_any==T){
     # view normalization
     for (m in 1:P){
-      # nan_indices_learning = is.na(learning.X[[m]])
-      # nan_indices_prediction = is.na(prediction.X[[m]])
       
       mas.mea.learning.X[[m]] = colMeans(learning.X[[m]], na.rm = T)
       mas.std.learning.X[[m]] = colSds(as.matrix(learning.X[[m]]), na.rm = T)
-      
-      ## same but slower
-      # mas.mea2 = apply(learning.X[[m]], 2, mean, na.rm = T)
-      # mas.std2 = apply(learning.X[[m]], 2, sd, na.rm = T)
       
       mas.std.learning.X[[m]][mas.std.learning.X[[m]]==0] = 1
       
       learning.X[[m]]= standarization(learning.X[[m]], mas.mea.learning.X[[m]], mas.std.learning.X[[m]])
       prediction.X[[m]] = standarization(prediction.X[[m]], mas.mea.learning.X[[m]],mas.std.learning.X[[m]])
-      
-      # learning.X[[m]][nan_indices_learning==T] <- 0
-      # prediction.X[[m]][nan_indices_prediction==T] <- 0
+
     }
     cat("input data normalization done","\n")
     
     # drug response standardization
-    # mas.mea = apply(learning.Y, 2, mean, na.rm = T)
-    
     mas.mea.learning.Y = colMeans(as.matrix(learning.Y), na.rm = T)
     mas.std.learning.Y =  rep(1, ncol(learning.Y)) #
     
@@ -82,7 +73,6 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
       learning.Y <- sweep(learning.Y, 2, mas.std.learning.Y, FUN = "/")
       validation.Y <- sweep(validation.Y, 2, mas.std.learning.Y, FUN = "/")
     }
-    
     cat("output data normalization done","\n")
     
   }else{
@@ -97,13 +87,13 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
   }
   
   # Hyperparameters estimation
-  state <- elastic_net_train(drug_source = learning.Y,
-                             views_source = learning.X,
-                             family = "mgaussian",
-                             view_combination = names_view,
-                             measure_type = "mse",
-                             parameters = parameters,
-                             parallelize = T, iteration = iteration)
+  state <- rmtlr_train(drug_source = learning.Y,
+                       views_source = learning.X,
+                       family = "mgaussian",
+                       view_combination = names_view,
+                       measure_type = "mse",
+                       parameters = parameters,
+                       parallelize = T, iteration = iteration)
   
   coef_values <- state$cv.glmnet.features
   hyperparameter_values <- state$cv.glmnet.hyperparameters
@@ -115,16 +105,9 @@ mgaussian <- function(drug_source, views_source, view_combination, learning_indi
   
   # Four metrics
   MSE <- lapply(prediction_cv, function(X){apply((validation.Y - X)^2, 2, mean)})
-  # MSE <- lapply(MSE, mean)
-  
   SpCorr <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "spearman"))})
-  # SpCorr <- lapply(SpCorr, mean)
-  
   PeCorr <- lapply(prediction_cv, function(X){diag(cor(validation.Y, X, method = "pearson"))})
-  # PeCorr <- lapply(PeCorr, mean)
-  
   CI <- lapply(prediction_cv, function(X){civalue(validation.Y, X)})
-  # CI <- lapply(CI, mean)
 
   # Return performance and model info
   performances <- list(MSE=MSE, SpCorr=SpCorr, PeCorr=PeCorr, CI=CI)

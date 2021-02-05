@@ -2,18 +2,15 @@
 # Script to estimate the hyperparameters, specific for elastic net regression.
 ###########################################################################################
 
-elastic_net_train <- function(drug_source, views_source, view_combination, standardize_any = F, standardize_response = T,
+rmtlr_train <- function(drug_source, views_source, view_combination, standardize_any = F, standardize_response = T,
                                 family, parameters, measure_type = c("mse","class"), k_fold = 5, parallelize = T, iteration) {
   
-  # ****************
   # packages
   library(glmnet)
-  #library(glmnet,lib.loc= Sys.getenv("R_LIBS")) # cluster
-  # Parallel
+  library(parallel)
   require(doMC)
   registerDoMC(cores = 4)
   
-  # ****************
   # General variables:
   names_view <- view_combination # Need data type 
   N <- nrow(drug_source) # number of observations
@@ -21,6 +18,7 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   P <- length(names_view) # number of views
   alpha_range <- parameters$alpha
   drugs <- colnames(drug_source)
+  
   ## Views:
   if (family == "mgaussian") {
     view_source.comb <- do.call(cbind, lapply(1:length(views_source), function(X) return(views_source[[X]])))
@@ -32,7 +30,6 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   }
   ## Responses: 
   drug_source.Z <- as.matrix(drug_source)
-
   
   # ****************
   # Hyperparameters estimation: alpha and lambda
@@ -176,42 +173,7 @@ elastic_net_train <- function(drug_source, views_source, view_combination, stand
   MSE_cv.glmnet <- list(lowest.mse.cv.1se, lowest.mse.cv.min) ; names(MSE_cv.glmnet) <- c("1se.mse","min.mse")
   Hyperparameters_cv.glmnet <-  list(parameters.glmnet.1se, parameters.glmnet.min) ; names(Hyperparameters_cv.glmnet) <- c("1se.mse","min.mse")
   
-  # # Stability Selection (it may take time if the number of replications is chosen very large and the number of
-  # # core is not chosen high enough but it depends on your computer)
-  # p <- ncol(views_source.Z)
-  # q <- ncol(drug_source.Z)
-  # n <- nrow(drug_source.Z)
-  # 
-  # stabsel.glmnet <- function(i) {
-  #   b_sort <- sort(sample(1:(n * q), floor((n * q) / 2)))
-  #   resultat_glmnet <- glmnet(views_source.Z[b_sort, ],
-  #                             drug_source.Z[b_sort],
-  #                             family = "gaussian",
-  #                             alpha = Hyperparameters_cv.glmnet[["min.mse"]][["alpha"]],
-  #                             lambda = Hyperparameters_cv.glmnet[["min.mse"]][["lambda"]]
-  #   )
-  #   ind_glmnet <- which(as.matrix(resultat_glmnet$beta) != 0)
-  #   return(tabulate(ind_glmnet, (p * q)))
-  # }
-  # X <- views_source.Z
-  # Y <- drug_source.Z
-  # nb_repli = 1000
-  # nb.cores = 4
-  # 
-  # res.cum <- Reduce("+", mclapply(1:nb_repli, stabsel.glmnet, mc.cores = nb.cores))
-  # 
-  # freq <- res.cum / nb_repli
-  # if (is.null(colnames(Y))) {
-  #   colnames(Y) <- 1:ncol(Y)
-  # }
-  # if (is.null(colnames(X))) {
-  #   colnames(X) <- 1:ncol(X)
-  # }
-  # Freqs <- cbind(rep(colnames(Y), each = p), rep(colnames(X), q), as.data.frame(freq))
-  # names(Freqs) <- c("Names_of_Y", "Names_of_X", "frequency")
-  
   return(list(cv.glmnet.hyperparameters = Hyperparameters_cv.glmnet,
               cv.glmnet.features = Coef_cv.glmnet,
               cv.glmnet.mse = MSE_cv.glmnet))
-              #cv.glmnet.freq = Freqs[2:3]))
 }

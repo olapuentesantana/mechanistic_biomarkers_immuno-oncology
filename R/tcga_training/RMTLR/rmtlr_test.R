@@ -1,4 +1,4 @@
-mgaussian_test <- function(x.test, coef.matrix){
+rmtlr_test <- function(x.test, coef.matrix){
   
   Intercept <- as.matrix(coef.matrix)[1,]
   coef <- as.matrix(coef.matrix)[-1, ,drop = FALSE]

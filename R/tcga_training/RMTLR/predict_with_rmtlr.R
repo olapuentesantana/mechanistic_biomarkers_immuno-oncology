@@ -1,22 +1,16 @@
 predict_Multi_Task_EN <- function(DataViews.train, DataViews.test, Label.test, View, K=100,
                         Trained.model, Algorithm, View.info, standardize_any=T){
   
-  # ****************
-  # packages
-  
-  # ****************
   # scripts
-  source("../R/scaling_function.R")
-  source("../R/GLMs/mgaussian_test.R")
+  source("./tcga_training/scaling_function.R")
+  source("./tcga_training/RMTLR/rmtlr_test.R")
   
-  # ****************
   # Initialize variables
   P <- length(View.info)
   Ndrug <- length(colnames(Trained.model[[Algorithm]][[1]]$model$cv.glmnet.features$min.mse))
   drugs <- colnames(Trained.model[[Algorithm]][[1]]$model$cv.glmnet.features$min.mse)
   labels <- list()
   predictions <- list()
-  
   predictions.all <- list()
   labels.all <- list()
   
@@ -62,7 +56,7 @@ predict_Multi_Task_EN <- function(DataViews.train, DataViews.test, Label.test, V
     }
     
     # perform prediction
-    predictions.model <- lapply(state, function(X) mgaussian_test(prediction.X, X))
+    predictions.model <- lapply(state, function(X) rmtlr_test(prediction.X, X))
     
     # save predictions
     predictions.all <- lapply(drugs, function(X){

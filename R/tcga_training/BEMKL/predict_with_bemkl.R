@@ -1,17 +1,13 @@
 predict_BEMKL <- function(DataViews.train, DataViews.test, Label.test, View, K=100,
                           Trained.model, Algorithm, View.info, standardize_any=T){
   
-  library(pdist)
-  
-  # ****************
   # packages
   library(reshape2)
   library(pdist)
   
-  # ****************
   # scripts
-  source("R/scaling_function.R")
-  source("R/tcga_training/BEMKL/bemkl_supervised_multioutput_regression_variational_test.R")
+  source("./tcga_training/scaling_function.R")
+  source("./tcga_training/BEMKL/bemkl_supervised_multioutput_regression_variational_test.R")
   
   P <- length(View.info)
 

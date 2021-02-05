@@ -2,23 +2,19 @@
 # Script to perform bayesian efficiente multiple kernel algorithm :
 ##########################################################################################################################
 
-BEMKL <- function(drug_source, views_source, view_combination, learning_indices, prediction_indices,
+run_bemkl <- function(drug_source, views_source, view_combination, learning_indices, prediction_indices,
                   standardize_any=F, standardize_response=F,
                   parameters, iteration) {
   
-  # ****************
   # packages
   library(pdist)
   
-  # ****************
   # scripts
-  source("./R/scaling_function.R")
-  source("./R/unscaling_function.R")
-  source("./R/civalue.R")
-  source("./R/BEMKL/bemkl_supervised_multioutput_regression_variational_train.R")
-  source("./R/BEMKL/bemkl_supervised_multioutput_regression_variational_test.R")
+  source("./tcga_training/scaling_function.R")
+  source("./tcga_training/civalue.R")
+  source("./tcga_training/BEMKL/bemkl_supervised_multioutput_regression_variational_train.R")
+  source("./tcga_training/BEMKL/bemkl_supervised_multioutput_regression_variational_test.R")
 
-  # ****************
   # General variables:
   names_view <- names(view_combination) # Need data type 
   Ndrug <- ncol(drug_source) # number of tasks (output variables)
@@ -34,9 +30,7 @@ BEMKL <- function(drug_source, views_source, view_combination, learning_indices,
   # ****************
   # Initialize variables
   names_view <- names(view_combination) # Need data type 
-  #mas.std.learning.X <- mas.mea.learning.X <- vector("list", length = random)
-  #mas.std.learning.Y <- mas.mea.learning.Y <- vector("list", length = random)
-  
+ 
   # separate input data in learing and prediction
   learning.X <- lapply(names_view, function(x){views_source[[x]][learning_indices,]})
   prediction.X <- lapply(names_view, function(x){views_source[[x]][prediction_indices,]})
@@ -48,33 +42,23 @@ BEMKL <- function(drug_source, views_source, view_combination, learning_indices,
   if (standardize_any==T){
     # view normalization
     for (m in 1:P){
-      # nan_indices_learning = is.na(learning.X[[m]])
-      # nan_indices_prediction = is.na(prediction.X[[m]])
       
       if (view_combination[m] != "jaccard"){
         
         mas.mea.learning.X[[m]] = colMeans(learning.X[[m]], na.rm = T)
         mas.std.learning.X[[m]] = colSds(as.matrix(learning.X[[m]]), na.rm = T)
-        
-        ## same but slower
-        # mas.mea2 = apply(learning.X[[m]], 2, mean, na.rm = T)
-        # mas.std2 = apply(learning.X[[m]], 2, sd, na.rm = T)
-        
+    
         mas.std.learning.X[[m]][mas.std.learning.X[[m]]==0] = 1
         
         learning.X[[m]]= standarization(learning.X[[m]], mas.mea.learning.X[[m]], mas.std.learning.X[[m]])
         prediction.X[[m]] = standarization(prediction.X[[m]], mas.mea.learning.X[[m]],mas.std.learning.X[[m]])
         
       }
-      # 
-      # learning.X[[m]][nan_indices_learning==T] <- 0
-      # prediction.X[[m]][nan_indices_prediction==T] <- 0
     }
     cat("input data normalization done","\n")
     
     # drug response standardization
-    # mas.mea = apply(learning.Y, 2, mean, na.rm = T)
-    
+
     mas.mea.learning.Y = colMeans(as.matrix(learning.Y), na.rm = T)
     mas.std.learning.Y =  rep(1, ncol(learning.Y)) #
     
@@ -89,7 +73,6 @@ BEMKL <- function(drug_source, views_source, view_combination, learning_indices,
       learning.Y <- sweep(learning.Y, 2, mas.std.learning.Y, FUN = "/")
       validation.Y <- sweep(validation.Y, 2, mas.std.learning.Y, FUN = "/")
     }
-    
     cat("output data normalization done","\n")
     
   }else{

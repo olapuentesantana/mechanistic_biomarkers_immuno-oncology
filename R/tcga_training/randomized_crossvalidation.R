@@ -1,15 +1,14 @@
+#
+# Run randomized cross validation
+#
 ###########################################################################################
-# Script to perform cross validation regardless of algorithm choice.
-###########################################################################################
-cross_validation <- function(drug_source, views_source, view_combination, algorithm, standardize_any=F, standardize_response=F,
-                             parameters, k_fold=5, random=NULL) {
+randomized_crossvalidation <- function(drug_source, views_source, view_combination, algorithm, standardize_any=F, standardize_response=F,
+                                       parameters, k_fold=5, random=NULL) {
   
   # ****************
   # scripts
-  source("R/GLMs.R")
-  source("R/mgaussian.R")
-  source("R/BEMKL.R")
-  source("R/L21_R.R")
+  source("./tcga_training/RMTLR/run_rmtlr.R")
+  source("./tcga_training/BEMKL/run_bemkl.R")
 
   # ****************
   # General variables:
@@ -36,8 +35,8 @@ cross_validation <- function(drug_source, views_source, view_combination, algori
   
   # ****************
   # k-fold CV:
-  #if random is set to a number, a randomised cross-validation, selecting each time
-  #20% of the samples is performed and repeated the specified amount of times
+  # if random is set to a number, a randomized cross-validation, selecting each time
+  # 20% of the samples is performed and repeated the specified amount of times
   
   for (k in 1:k_fold){
     cat("\n---\niteration", k,":", "\n")
@@ -53,17 +52,15 @@ cross_validation <- function(drug_source, views_source, view_combination, algori
     
     cat("Model -->", algorithm, "\n")
  
-    if (algorithm %in% "Multi_Task_EN"){
+    if (algorithm %in% "RMTLR"){
       
-      # Multi-task (Elastic Net):
-      output[[k]] <- mgaussian(drug_source, views_source, view_combination, learning_indices, prediction_indices,
+      output[[k]] <- run_rmtlr(drug_source, views_source, view_combination, learning_indices, prediction_indices,
                                standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
       
     }else if (algorithm %in% "BEMKL"){
-      
-      # BEMKL:
-      output[[k]] <- BEMKL(drug_source, views_source, view_combination, learning_indices, prediction_indices,
-                           standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
+
+      output[[k]] <- run_bemkl(drug_source, views_source, view_combination, learning_indices, prediction_indices,
+                               standardize_any, standardize_response, parameters = parameters[[algorithm]], iteration = k) 
     }
   }
   return(output)
