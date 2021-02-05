@@ -6,7 +6,6 @@ data/RNAdata_Maisa/
 data/raw_data_tcga/
 data/Validation/
 data/all_genes_ICB_proxies.RData
-data/model_human_full.rda
 data/LR.pairs.Ramilowski.RData
 data/gene_names_updated_LRpairs.RData
 data/gene_names_updated_pathways.RData
