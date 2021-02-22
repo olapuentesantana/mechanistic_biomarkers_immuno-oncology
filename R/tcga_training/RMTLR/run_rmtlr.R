@@ -100,7 +100,7 @@ run_rmtlr <- function(drug_source, views_source, view_combination, learning_indi
   cat("training performed","\n")
   
   # perform prediction
-  prediction_cv <- lapply(coef_values, function(X){mgaussian_test(prediction.X, X)})
+  prediction_cv <- lapply(coef_values, function(X){rmtlr_test(prediction.X, X)})
   cat("prediction computed","\n")
   
   # Four metrics

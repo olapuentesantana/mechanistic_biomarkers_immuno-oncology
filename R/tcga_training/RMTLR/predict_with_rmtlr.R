@@ -1,4 +1,4 @@
-predict_Multi_Task_EN <- function(DataViews.train, DataViews.test, Label.test, View, K=100,
+predict_with_rmtlr <- function(DataViews.train, DataViews.test, Label.test, View, K=100,
                         Trained.model, Algorithm, View.info, standardize_any=T){
   
   # scripts
